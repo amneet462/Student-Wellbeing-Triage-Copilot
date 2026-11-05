@@ -1,4 +1,8 @@
 # AI-Powered Student Wellbeing & Triage Copilot
+## Student-Wellbeing-Triage-Copilot
+
+This project is an AI-powered student support assistant that helps students deal with academic stress, mental health concerns, and university-related problems without having to wait for a counselling appointment.
+
 ## Module 1: AI Safety & Risk Triage Engine
 
 > ⚠️ **Clinical Disclaimer**: This system provides automated initial triage support only. It does not diagnose mental health conditions, guarantee crisis detection, or replace professional clinical assessment. If you are in immediate danger, please call your local emergency services.

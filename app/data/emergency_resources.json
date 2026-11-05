@@ -1,0 +1,145 @@
+{
+  "_metadata": {
+    "version": "1.0",
+    "description": "Emergency resources for the Student Wellbeing Triage System.",
+    "admin_note": "IMPORTANT: All phone numbers and contact details must be verified by a university administrator before deployment. Placeholder entries are clearly marked with VERIFY_BEFORE_DEPLOYMENT.",
+    "last_reviewed": "YYYY-MM-DD",
+    "reviewed_by": "University Wellbeing Team"
+  },
+  "global": {
+    "disclaimer": "This system is not a replacement for professional mental health care. If you are in immediate danger, please call your local emergency services immediately.",
+    "crisis_message": "You are not alone. Immediate help is available. Please reach out to one of the contacts below — they are trained to support you right now."
+  },
+  "universities": {
+    "default": {
+      "name": "Default University",
+      "country": "UK",
+      "emergency_contacts": [
+        {
+          "id": "emergency_services",
+          "name": "Emergency Services",
+          "type": "EMERGENCY",
+          "phone": "999",
+          "available": "24/7",
+          "description": "Call immediately if you or someone else is in immediate danger.",
+          "verified": true
+        },
+        {
+          "id": "samaritans_uk",
+          "name": "Samaritans",
+          "type": "CRISIS_LINE",
+          "phone": "116 123",
+          "email": "jo@samaritans.org",
+          "website": "https://www.samaritans.org",
+          "available": "24/7",
+          "description": "Free confidential listening support, available any time of day or night.",
+          "verified": true
+        },
+        {
+          "id": "crisis_text_line_uk",
+          "name": "Shout Crisis Text Line",
+          "type": "CRISIS_TEXT",
+          "text_number": "85258",
+          "instruction": "Text SHOUT to 85258",
+          "available": "24/7",
+          "description": "Free, confidential, 24/7 crisis text support.",
+          "verified": true
+        },
+        {
+          "id": "university_counselling",
+          "name": "University Counselling Service",
+          "type": "UNIVERSITY_SUPPORT",
+          "phone": "VERIFY_BEFORE_DEPLOYMENT",
+          "email": "VERIFY_BEFORE_DEPLOYMENT",
+          "website": "VERIFY_BEFORE_DEPLOYMENT",
+          "available": "Mon-Fri 9am-5pm (emergency out-of-hours available)",
+          "description": "Your university's professional counselling team. Human support is available.",
+          "verified": false,
+          "admin_note": "Replace with your institution's actual counselling service contact details."
+        },
+        {
+          "id": "university_security",
+          "name": "University Security / Campus Emergency",
+          "type": "CAMPUS_EMERGENCY",
+          "phone": "VERIFY_BEFORE_DEPLOYMENT",
+          "available": "24/7",
+          "description": "Campus security for immediate on-site support.",
+          "verified": false,
+          "admin_note": "Replace with your campus security number."
+        }
+      ],
+      "online_resources": [
+        {
+          "id": "mind_uk",
+          "name": "Mind",
+          "website": "https://www.mind.org.uk",
+          "description": "Mental health charity providing information and support.",
+          "verified": true
+        },
+        {
+          "id": "studentminds",
+          "name": "Student Minds",
+          "website": "https://www.studentminds.org.uk",
+          "description": "UK's student mental health charity.",
+          "verified": true
+        }
+      ]
+    },
+    "example_us_university": {
+      "name": "Example US University",
+      "country": "US",
+      "emergency_contacts": [
+        {
+          "id": "emergency_services_us",
+          "name": "Emergency Services",
+          "type": "EMERGENCY",
+          "phone": "911",
+          "available": "24/7",
+          "description": "Call immediately if you or someone else is in immediate danger.",
+          "verified": true
+        },
+        {
+          "id": "988_lifeline",
+          "name": "988 Suicide & Crisis Lifeline",
+          "type": "CRISIS_LINE",
+          "phone": "988",
+          "website": "https://988lifeline.org",
+          "available": "24/7",
+          "description": "Call or text 988 for free, confidential crisis support.",
+          "verified": true
+        },
+        {
+          "id": "crisis_text_line_us",
+          "name": "Crisis Text Line",
+          "type": "CRISIS_TEXT",
+          "text_number": "741741",
+          "instruction": "Text HOME to 741741",
+          "available": "24/7",
+          "description": "Free crisis counselling via text message.",
+          "verified": true
+        },
+        {
+          "id": "campus_counselling_us",
+          "name": "Campus Counselling Center",
+          "type": "UNIVERSITY_SUPPORT",
+          "phone": "VERIFY_BEFORE_DEPLOYMENT",
+          "email": "VERIFY_BEFORE_DEPLOYMENT",
+          "available": "VERIFY_BEFORE_DEPLOYMENT",
+          "description": "On-campus counselling services.",
+          "verified": false,
+          "admin_note": "Replace with your institution's actual counselling service contact details."
+        }
+      ],
+      "online_resources": [
+        {
+          "id": "nami",
+          "name": "NAMI (National Alliance on Mental Illness)",
+          "website": "https://www.nami.org",
+          "description": "Mental health support, education and advocacy.",
+          "verified": true
+        }
+      ]
+    }
+  }
+}
+

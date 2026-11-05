@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Wellbeing & AI Risk Triage Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-subtle: #1a2234;
+      --border: #243049;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      
+      --low: #10b981;
+      --low-bg: rgba(16, 185, 129, 0.12);
+      --mod: #f59e0b;
+      --mod-bg: rgba(245, 158, 11, 0.12);
+      --high: #f97316;
+      --high-bg: rgba(249, 115, 22, 0.15);
+      --crit: #ef4444;
+      --crit-bg: rgba(239, 68, 68, 0.18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: white;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .title-group h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .title-group p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--low);
+      box-shadow: 0 0 8px var(--low);
+    }
+
+    .docs-btn {
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .docs-btn:hover {
+      background: var(--border);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1.1fr 1.3fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .panel-header h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .chip {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      background: #1f2a40;
+    }
+    .chip.crisis {
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+    .chip.crisis:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: var(--crit);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 0.85rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .btn-submit {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+    .btn-submit:hover {
+      background: #2563eb;
+    }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Result Cards */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .metric-card {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .metric-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Risk Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge.LOW { background: var(--low-bg); color: var(--low); border: 1px solid var(--low); }
+    .badge.MODERATE { background: var(--mod-bg); color: var(--mod); border: 1px solid var(--mod); }
+    .badge.HIGH { background: var(--high-bg); color: var(--high); border: 1px solid var(--high); }
+    .badge.CRITICAL { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit); animation: pulse 2s infinite; }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* Emergency Alert Banner */
+    .emergency-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.35));
+      border: 1.5px solid var(--crit);
+      border-radius: 10px;
+      padding: 1rem;
+      gap: 0.75rem;
+    }
+    .emergency-banner.active {
+      display: flex;
+      flex-direction: column;
+    }
+    .emergency-banner-title {
+      font-weight: 800;
+      color: #fca5a5;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Workflow Pipeline visualization */
+    .workflow-tracker {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+
+    .workflow-steps {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .step-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: #0e1422;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .step-pill.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--accent);
+      color: #93c5fd;
+      font-weight: 600;
+    }
+    .step-pill.crisis-step {
+      background: var(--crit-bg);
+      border-color: var(--crit);
+      color: #fca5a5;
+      font-weight: 700;
+    }
+
+    /* Emergency Contacts list */
+    .resource-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .resource-card {
+      background: #0f1626;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .resource-info h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .resource-info p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .resource-cta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+    }
+    .phone-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+    .verified-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--low);
+    }
+    .unverified-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--mod);
+    }
+
+    /* JSON Inspector */
+    pre.json-viewer {
+      background: #070a10;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: #a5b4fc;
+      overflow-x: auto;
+      max-height: 180px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: var(--surface);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">W</div>
+      <div class="title-group">
+        <h1>Student Wellbeing Triage Copilot</h1>
+        <p>Module 1: AI Safety, Risk Triage & Emergency Bypass Engine</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span id="serviceStatus">Triage Service Online</span>
+      </div>
+      <a href="/docs" target="_blank" class="docs-btn">API Specs /docs</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Column: Input Simulator -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Student Message Simulator</h2>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Interactive Demo</span>
+      </div>
+
+      <div class="input-group">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Quick-Test Prompts (Click to test):</label>
+        <div class="preset-chips">
+          <button class="chip" onclick="fillPrompt('I am stressed about my upcoming exams and revision.')">Academic Stress (Low)</button>
+          <button class="chip" onclick="fillPrompt('I cannot sleep at night because of severe anxiety and worry.')">Exam Anxiety (Moderate)</button>
+          <button class="chip" onclick="fillPrompt('I cannot afford to pay my tuition fees and rent this month.')">Financial Problem</button>
+          <button class="chip" onclick="fillPrompt('I need to request a coursework extension and disability support.')">Admin Query</button>
+          <button class="chip" onclick="fillPrompt('I feel completely hopeless, trapped and I cannot go on anymore.')">Hopelessness (High)</button>
+          <button class="chip crisis" onclick="fillPrompt('I feel hopeless and want to hurt myself.')">Crisis / Self-Harm (Critical)</button>
+          <button class="chip crisis" onclick="fillPrompt('I took an overdose of pills and I have written a goodbye note.')">Explicit Crisis (Critical)</button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="messageInput" style="font-size: 0.8rem; font-weight: 600;">Student Message Input:</label>
+        <textarea id="messageInput" placeholder="Type a message to simulate a student conversation..."></textarea>
+      </div>
+
+      <button id="submitBtn" class="btn-submit" onclick="runTriage()">
+        <span>Run Safety Triage Analysis</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+
+      <!-- Emergency bypass summary banner -->
+      <div id="emergencyBanner" class="emergency-banner">
+        <div class="emergency-banner-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          CRITICAL SAFETY GATE: EMERGENCY BYPASS ACTIVATED
+        </div>
+        <p style="font-size: 0.82rem; color: #fecaca;">
+          Generative AI response pipeline has been <strong>completely blocked (LLM Count: 0)</strong>. 
+          Message bypassed to immediate verified emergency contacts.
+        </p>
+      </div>
+
+      <!-- Verified Emergency Contacts -->
+      <div id="contactsSection" style="display:none; flex-direction:column; gap:0.6rem;">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Verified Emergency Contacts (JSON Config)</h3>
+        <div id="resourceContainer" class="resource-list"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: Safety Orchestration & Output -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Triage & Safety Decision Output</h2>
+        <span id="responseStatus" class="step-pill">Awaiting Input</span>
+      </div>
+
+      <!-- Real-time Metrics -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Risk Level</div>
+          <div class="metric-value">
+            <span id="riskBadge" class="badge LOW">LOW</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Issue Category</div>
+          <div id="categoryVal" class="metric-value" style="font-size: 0.95rem; color: #93c5fd;">
+            ACADEMIC_STRESS
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">State Machine State</div>
+          <div id="stateVal" class="metric-value" style="font-size: 0.9rem; font-family: 'JetBrains Mono', monospace;">
+            ACADEMIC_SUPPORT
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Downstream Routing (Next Action)</div>
+          <div id="nextActionVal" class="metric-value" style="font-size: 0.9rem; color: #a7f3d0;">
+            WORKLOAD_AGENT (Mod 3)
+          </div>
+        </div>
+      </div>
+
+      <!-- LLM Bypass Verification Indicator -->
+      <div class="metric-card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="metric-label">Generative AI Guard</div>
+          <div id="llmStatus" style="font-weight: 700; font-size: 0.9rem; color: var(--low); margin-top: 0.2rem;">
+            AI Permitted (Non-Crisis Workflow)
+          </div>
+        </div>
+        <div id="llmPill" class="step-pill active" style="font-size: 0.8rem;">
+          bypass_llm: false
+        </div>
+      </div>
+
+      <!-- State Machine Workflow Visualization -->
+      <div class="workflow-tracker">
+        <div class="metric-label">Deterministic State Transition Path</div>
+        <div id="workflowSteps" class="workflow-steps">
+          <span class="step-pill active">RECEIVED</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill active">ANALYZING</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span id="finalStepPill" class="step-pill active">ACADEMIC_SUPPORT</span>
+        </div>
+      </div>
+
+      <!-- User-Facing Message -->
+      <div class="input-group">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Response Message to Student:</label>
+        <div id="userMsg" style="background:#0e1422; border:1px solid var(--border); border-radius:8px; padding:0.85rem; font-size:0.88rem;">
+          Your message has been classified for academic support.
+        </div>
+      </div>
+
+      <!-- Raw API Response JSON (For Module 2/3 Devs) -->
+      <div class="input-group">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">Integration Payload Contract (JSON):</label>
+        </div>
+        <pre id="jsonPayload" class="json-viewer">// Raw API response will render here</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>AI Safety & Risk Triage Engine • Clinical Disclaimer: This system provides automated initial triage support only. It does not diagnose conditions or replace clinical care.</p>
+  </footer>
+
+  <script>
+    function fillPrompt(text) {
+      document.getElementById('messageInput').value = text;
+      runTriage();
+    }
+
+    async function runTriage() {
+      const message = document.getElementById('messageInput').value.trim();
+      if (!message) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = 'Analyzing Safety & Risk...';
+
+      try {
+        const res = await fetch('/api/triage/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message })
+        });
+
+        const data = await res.json();
+        renderResults(data);
+      } catch (err) {
+        alert('Failed to connect to Triage API: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Run Safety Triage Analysis</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>`;
+      }
+    }
+
+    function renderResults(data) {
+      // 1. Risk Level
+      const riskBadge = document.getElementById('riskBadge');
+      riskBadge.innerText = data.risk_level;
+      riskBadge.className = `badge ${data.risk_level}`;
+
+      // 2. Category & State
+      document.getElementById('categoryVal').innerText = data.category;
+      document.getElementById('stateVal').innerText = data.state;
+      document.getElementById('nextActionVal').innerText = data.next_action;
+      document.getElementById('userMsg').innerText = data.message;
+
+      // 3. Emergency Bypass Visuals
+      const banner = document.getElementById('emergencyBanner');
+      const contactsSection = document.getElementById('contactsSection');
+      const resourceContainer = document.getElementById('resourceContainer');
+      const llmStatus = document.getElementById('llmStatus');
+      const llmPill = document.getElementById('llmPill');
+
+      if (data.emergency || data.bypass_llm) {
+        banner.className = 'emergency-banner active';
+        llmStatus.innerText = 'BLOCKED (Bypass Active - Count: 0)';
+        llmStatus.style.color = 'var(--crit)';
+        llmPill.className = 'step-pill crisis-step';
+        llmPill.innerText = 'bypass_llm: true';
+      } else {
+        banner.className = 'emergency-banner';
+        llmStatus.innerText = 'AI Permitted (Non-Crisis Workflow)';
+        llmStatus.style.color = 'var(--low)';
+        llmPill.className = 'step-pill active';
+        llmPill.innerText = 'bypass_llm: false';
+      }
+
+      // 4. Render Emergency Contacts if available
+      if (data.resources && data.resources.length > 0) {
+        contactsSection.style.display = 'flex';
+        resourceContainer.innerHTML = data.resources.map(r => `
+          <div class="resource-card">
+            <div class="resource-info">
+              <h4>${r.name} (${r.type})</h4>
+              <p>${r.description}</p>
+            </div>
+            <div class="resource-cta">
+              <span class="phone-tag">${r.phone || r.text_number || 'Online'}</span>
+              <span class="${r.verified ? 'verified-badge' : 'unverified-badge'}">
+                ${r.verified ? '✓ Verified' : '⚠ Requires Admin Verification'}
+              </span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        contactsSection.style.display = 'none';
+      }
+
+      // 5. Workflow step rendering
+      const workflowSteps = document.getElementById('workflowSteps');
+      if (data.risk_level === 'CRITICAL') {
+        workflowSteps.innerHTML = `
+          <span class="step-pill active">RECEIVED</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill active">ANALYZING</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill crisis-step">CRISIS_DETECTED</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill crisis-step">EMERGENCY_RESPONSE [LOCKED]</span>
+        `;
+      } else {
+        workflowSteps.innerHTML = `
+          <span class="step-pill active">RECEIVED</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill active">ANALYZING</span>
+          <span style="color:var(--text-muted); font-size:0.8rem;">→</span>
+          <span class="step-pill active">${data.state}</span>
+        `;
+      }
+
+      // 6. JSON dump for devs
+      document.getElementById('jsonPayload').innerText = JSON.stringify(data, null, 2);
+      document.getElementById('responseStatus').innerText = 'Analysis Complete (200 OK)';
+    }
+
+    // Health check on load
+    window.addEventListener('load', async () => {
+      try {
+        const res = await fetch('/api/triage/health');
+        if (res.ok) {
+          document.getElementById('serviceStatus').innerText = 'Triage Engine v1.0 Online';
+        }
+      } catch (e) {
+        document.getElementById('serviceStatus').innerText = 'API Offline';
+      }
+    });
+  </script>
+</body>
+</html>
+

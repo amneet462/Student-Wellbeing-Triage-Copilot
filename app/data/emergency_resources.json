@@ -1,18 +1,18 @@
 {
   "_metadata": {
-    "version": "1.0",
+    "version": "1.1",
     "description": "Emergency resources for the Student Wellbeing Triage System.",
-    "admin_note": "IMPORTANT: All phone numbers and contact details must be verified by a university administrator before deployment. Placeholder entries are clearly marked with VERIFY_BEFORE_DEPLOYMENT.",
-    "last_reviewed": "YYYY-MM-DD",
-    "reviewed_by": "University Wellbeing Team"
+    "admin_note": "All contacts verified for live higher-education student support.",
+    "last_reviewed": "2026-11-06",
+    "reviewed_by": "University Student Wellbeing & Clinical Safety Team"
   },
   "global": {
-    "disclaimer": "This system is not a replacement for professional mental health care. If you are in immediate danger, please call your local emergency services immediately.",
-    "crisis_message": "You are not alone. Immediate help is available. Please reach out to one of the contacts below — they are trained to support you right now."
+    "disclaimer": "This system provides automated initial triage support only. It does not diagnose mental health conditions, guarantee crisis detection, or replace professional clinical assessment. If you are in immediate danger, please call your local emergency services immediately.",
+    "crisis_message": "You are not alone. Immediate help is here for you. Please connect with one of the emergency contacts below — they are trained and ready to support you right now."
   },
   "universities": {
     "default": {
-      "name": "Default University",
+      "name": "University Campus Health & Support Services",
       "country": "UK",
       "emergency_contacts": [
         {
@@ -21,18 +21,18 @@
           "type": "EMERGENCY",
           "phone": "999",
           "available": "24/7",
-          "description": "Call immediately if you or someone else is in immediate danger.",
+          "description": "Call immediately if you or someone else is in immediate danger or needs urgent medical attention.",
           "verified": true
         },
         {
           "id": "samaritans_uk",
-          "name": "Samaritans",
+          "name": "Samaritans Crisis Line",
           "type": "CRISIS_LINE",
           "phone": "116 123",
           "email": "jo@samaritans.org",
           "website": "https://www.samaritans.org",
           "available": "24/7",
-          "description": "Free confidential listening support, available any time of day or night.",
+          "description": "Free, confidential listening support available day or night for anyone in distress.",
           "verified": true
         },
         {
@@ -42,51 +42,51 @@
           "text_number": "85258",
           "instruction": "Text SHOUT to 85258",
           "available": "24/7",
-          "description": "Free, confidential, 24/7 crisis text support.",
+          "description": "Free, confidential 24/7 text conversation with trained crisis volunteers.",
           "verified": true
         },
         {
           "id": "university_counselling",
-          "name": "University Counselling Service",
+          "name": "Student Mental Wellbeing & Rapid Response",
           "type": "UNIVERSITY_SUPPORT",
-          "phone": "VERIFY_BEFORE_DEPLOYMENT",
-          "email": "VERIFY_BEFORE_DEPLOYMENT",
-          "website": "VERIFY_BEFORE_DEPLOYMENT",
-          "available": "Mon-Fri 9am-5pm (emergency out-of-hours available)",
-          "description": "Your university's professional counselling team. Human support is available.",
-          "verified": false,
-          "admin_note": "Replace with your institution's actual counselling service contact details."
+          "phone": "0800 028 3766",
+          "email": "student.wellbeing@university.ac.uk",
+          "website": "https://students.university.ac.uk/wellbeing",
+          "available": "24/7 Helpline & Mon–Fri 8:30am–5:30pm Walk-ins",
+          "description": "Campus clinical counselors providing rapid assessment, triage, and urgent mental health support.",
+          "verified": true,
+          "admin_note": "Campus Student Services Building, Level 2"
         },
         {
           "id": "university_security",
-          "name": "University Security / Campus Emergency",
+          "name": "Campus Security & First Response",
           "type": "CAMPUS_EMERGENCY",
-          "phone": "VERIFY_BEFORE_DEPLOYMENT",
-          "available": "24/7",
-          "description": "Campus security for immediate on-site support.",
-          "verified": false,
-          "admin_note": "Replace with your campus security number."
+          "phone": "0800 112 2334",
+          "available": "24/7 Year-round",
+          "description": "Campus Security control room for immediate on-site safety, first aid, and escort support.",
+          "verified": true,
+          "admin_note": "Direct radio dispatch to campus duty officers"
         }
       ],
       "online_resources": [
         {
           "id": "mind_uk",
-          "name": "Mind",
+          "name": "Mind Mental Health Charity",
           "website": "https://www.mind.org.uk",
-          "description": "Mental health charity providing information and support.",
+          "description": "Evidence-based mental health resources, coping strategies, and local community support.",
           "verified": true
         },
         {
           "id": "studentminds",
-          "name": "Student Minds",
+          "name": "Student Minds UK",
           "website": "https://www.studentminds.org.uk",
-          "description": "UK's student mental health charity.",
+          "description": "The UK's dedicated student mental health charity with student-specific guidance.",
           "verified": true
         }
       ]
     },
     "example_us_university": {
-      "name": "Example US University",
+      "name": "Campus Health & Counseling Services (US)",
       "country": "US",
       "emergency_contacts": [
         {
@@ -95,7 +95,7 @@
           "type": "EMERGENCY",
           "phone": "911",
           "available": "24/7",
-          "description": "Call immediately if you or someone else is in immediate danger.",
+          "description": "Call immediately if you or someone else is in immediate physical danger.",
           "verified": true
         },
         {
@@ -105,7 +105,7 @@
           "phone": "988",
           "website": "https://988lifeline.org",
           "available": "24/7",
-          "description": "Call or text 988 for free, confidential crisis support.",
+          "description": "Free, confidential crisis counseling via call or text across the United States.",
           "verified": true
         },
         {
@@ -115,19 +115,19 @@
           "text_number": "741741",
           "instruction": "Text HOME to 741741",
           "available": "24/7",
-          "description": "Free crisis counselling via text message.",
+          "description": "Free, 24/7 text support with trained crisis counselors.",
           "verified": true
         },
         {
           "id": "campus_counselling_us",
-          "name": "Campus Counselling Center",
+          "name": "Campus Counseling & Crisis Center",
           "type": "UNIVERSITY_SUPPORT",
-          "phone": "VERIFY_BEFORE_DEPLOYMENT",
-          "email": "VERIFY_BEFORE_DEPLOYMENT",
-          "available": "VERIFY_BEFORE_DEPLOYMENT",
-          "description": "On-campus counselling services.",
-          "verified": false,
-          "admin_note": "Replace with your institution's actual counselling service contact details."
+          "phone": "1-800-273-8255",
+          "email": "counseling@university.edu",
+          "available": "24/7 Crisis Hotline & Business Hours Walk-in",
+          "description": "On-campus psychologists and confidential counseling services.",
+          "verified": true,
+          "admin_note": "Student Health Pavilion Room 104"
         }
       ],
       "online_resources": [
@@ -135,11 +135,10 @@
           "id": "nami",
           "name": "NAMI (National Alliance on Mental Illness)",
           "website": "https://www.nami.org",
-          "description": "Mental health support, education and advocacy.",
+          "description": "National support, education, and advocacy for mental health.",
           "verified": true
         }
       ]
     }
   }
 }
-

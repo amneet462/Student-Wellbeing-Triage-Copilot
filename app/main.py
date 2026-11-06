@@ -25,6 +25,9 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.triage_routes import router as triage_router
+from app.api.assistant_routes import router as assistant_router
+from app.api.agent_routes import router as agent_router
+from app.api.resource_routes import router as resource_router
 from app.config import (
     API_PREFIX,
     APP_DESCRIPTION,
@@ -74,24 +77,35 @@ app = FastAPI(
 )
 
 # ── CORS Middleware ───────────────────────────────────────────────────────────
+allowed_origins = list(set(CORS_ORIGINS + ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "*"]))
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(triage_router, prefix=API_PREFIX)
+app.include_router(assistant_router, prefix=API_PREFIX)
+app.include_router(agent_router, prefix=API_PREFIX)
+app.include_router(resource_router, prefix=API_PREFIX)
 
 STATIC_DIR = BASE_DIR / "static"
-if STATIC_DIR.exists():
+FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+
+if (FRONTEND_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIST / "assets")), name="frontend-assets")
+elif STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # ── Root endpoint (Serves Web Dashboard) ──────────────────────────────────────
 @app.get("/", tags=["Dashboard"], response_model=None)
 async def root():
+    frontend_index = FRONTEND_DIST / "index.html"
+    if frontend_index.exists():
+        return FileResponse(frontend_index)
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         return FileResponse(index_file)

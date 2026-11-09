@@ -1,34 +1,48 @@
 """
 app/api/assistant_routes.py
 ───────────────────────────
-FastAPI routes for the AI Support Assistant and Dual-Store RAG service.
-Initially stubbed with verified mock responses for team development.
+FastAPI routes for the AI Support Assistant and Dual-Store RAG service (Person 2).
+
+Integrates:
+  • Pre-LLM Safety Gatekeeper (Person 1) to halt AI during acute crisis.
+  • Dual-Store ChromaDB Vector Knowledge Base (Policies + CBT Wellness).
+  • Google Gemini Free-Tier RAG Engine with prompt-enforced verbatim citations.
+  • Deterministic local fallback ensuring 0 cost and token minimization.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Optional, List
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException
+
+from app.schemas.triage_schema import EmergencyContact
+from app.services.safety_gatekeeper import SafetyGatekeeper
+from app.services.rag.gemini_rag import GeminiRAGAssistant, RAGAnswer
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/assistant", tags=["Assistant & RAG"])
 
+# Singleton service instances
+_gatekeeper = SafetyGatekeeper()
+_rag_assistant = GeminiRAGAssistant()
+
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class Citation(BaseModel):
-    document: str = Field(..., description="Name of the official university policy or clinical source document.")
+    document: str = Field(..., description="Name of official university policy or clinical guide.")
     section: str = Field(..., description="Specific section, clause, or chapter.")
-    page: Optional[int] = Field(None, description="Page number if available.")
+    page: Optional[int] = Field(None, description="Page number or chunk index.")
     excerpt: Optional[str] = Field(None, description="Verbatim citation snippet.")
 
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(None, description="Client session ID for state continuity.")
-    query: str = Field(..., min_length=1, max_length=2000, description="Student's inquiry.")
+    query: Optional[str] = Field(None, description="Student's inquiry (alias: message).")
+    message: Optional[str] = Field(None, description="Alternative field for student's inquiry.")
     category: Optional[str] = Field(None, description="Classified category from triage engine.")
 
 
@@ -37,6 +51,9 @@ class ChatResponse(BaseModel):
     citations: List[Citation] = Field(default_factory=list, description="Verified citations backing the answer.")
     safety_checked: bool = Field(True, description="Indicates safety pre-screening passed.")
     fallback_suggested: bool = Field(False, description="True if query is outside verified knowledge base.")
+    is_crisis: bool = Field(False, description="True if acute crisis was intercepted.")
+    emergency_contacts: List[EmergencyContact] = Field(default_factory=list, description="Emergency contacts if crisis.")
+    model_used: Optional[str] = Field(None, description="Model that produced the answer.")
 
 
 class CBTExercise(BaseModel):
@@ -60,67 +77,57 @@ async def chat_with_assistant(request: ChatRequest) -> ChatResponse:
     """
     RAG Assistant Chat Endpoint (Person 2).
     Generates citation-backed answers from campus policy and CBT wellness knowledge stores.
+    Protected by Person 1's Pre-LLM Safety Gatekeeper.
     """
-    logger.info("Assistant chat query received: %s (session: %s)", request.query[:50], request.session_id)
-    
-    # Mock intelligent response for team development
-    query_lower = request.query.lower()
-    
-    if "extension" in query_lower or "deadline" in query_lower or "mitigating" in query_lower:
+    raw_query = (request.query or request.message or "").strip()
+    if not raw_query:
+        raise HTTPException(status_code=422, detail="Query or message field must not be empty.")
+
+    logger.info("Assistant chat query received: '%s' (session: %s)", raw_query[:60], request.session_id)
+
+    # ── Step 1: Pre-LLM Safety Screening (Person 1 Gatekeeper) ────────────────
+    safety_result = _gatekeeper.evaluate(raw_query, session_id=request.session_id)
+    if not safety_result.is_safe or safety_result.bypass_llm:
+        logger.warning("Bypassing generative AI for high-risk chat query: '%s'", raw_query[:40])
         return ChatResponse(
-            reply=(
-                "Under university academic regulations, you are entitled to request a formal coursework "
-                "extension if you encounter unforeseen personal or medical difficulties. Extension requests "
-                "should typically be submitted at least 48 hours prior to the assessment deadline through "
-                "the student portal with relevant supporting documentation."
-            ),
+            reply=safety_result.crisis_message or "Emergency protocol active.",
             citations=[
                 Citation(
-                    document="University Academic Regulations Handbook 2026",
-                    section="Section 4.3 (Extenuating Circumstances & Coursework Deadlines)",
-                    page=19,
-                    excerpt="Applications for deadline extensions under extenuating circumstances must be registered 48h prior to submission."
+                    document="Clinical Emergency Safety Protocol 2026",
+                    section="Section 1.0 (Zero-LLM Immediate Bypass)",
+                    page=1,
+                    excerpt="Generative AI is halted when self-harm or acute crisis indicators are detected."
                 )
             ],
             safety_checked=True,
-            fallback_suggested=False
-        )
-    
-    if "panic" in query_lower or "anxious" in query_lower or "breathe" in query_lower or "grounding" in query_lower:
-        return ChatResponse(
-            reply=(
-                "When experiencing acute exam anxiety or panic, cognitive psychology recommends the 5-4-3-2-1 "
-                "grounding technique to regulate your nervous system. Try identifying 5 things you can see, "
-                "4 things you can physically touch, 3 things you can hear, 2 things you can smell, and 1 slow breath."
-            ),
-            citations=[
-                Citation(
-                    document="Clinical Psychoeducation & Anxiety Management Guide",
-                    section="Module 2 (Acute Somatic Grounding)",
-                    page=7,
-                    excerpt="Sensory grounding interrupts amygdala-driven panic loops by re-anchoring cognitive attention."
-                )
-            ],
-            safety_checked=True,
-            fallback_suggested=False
+            fallback_suggested=False,
+            is_crisis=True,
+            emergency_contacts=safety_result.emergency_contacts,
+            model_used="safety-gatekeeper-bypass",
         )
 
-    # General campus guidance fallback
+    # ── Step 2: RAG Pipeline with ChromaDB & Gemini ───────────────────────────
+    rag_result: RAGAnswer = _rag_assistant.generate_response(raw_query, category=request.category)
+
+    # Map citations to response schema
+    out_citations = [
+        Citation(
+            document=c.document,
+            section=c.section,
+            page=c.page,
+            excerpt=c.excerpt,
+        )
+        for c in rag_result.citations
+    ]
+
     return ChatResponse(
-        reply=(
-            "I have retrieved your university's student guidance. For general coursework advice, syllabus "
-            "breakdown, or campus support services, please check the Workload Planner tab or visit the "
-            "Campus Support Directory to connect directly with your academic advisor."
-        ),
-        citations=[
-            Citation(
-                document="Student Wellbeing & Academic Support Charter 2026",
-                section="Section 1.1 (Student Guidance & Support Directory)",
-                page=3
-            )
-        ],
+        reply=rag_result.reply,
+        citations=out_citations,
         safety_checked=True,
-        fallback_suggested=False
+        fallback_suggested=rag_result.fallback_suggested,
+        is_crisis=False,
+        emergency_contacts=[],
+        model_used=rag_result.model_used,
     )
 
 
@@ -178,4 +185,3 @@ async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercises
         return CBTExercisesResponse(status="success", exercises=filtered)
         
     return CBTExercisesResponse(status="success", exercises=all_exercises)
-

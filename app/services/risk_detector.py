@@ -55,7 +55,9 @@ _CRITICAL_PATTERNS: list[re.Pattern] = [
     for p in [
         # Direct self-harm intent
         r"(want|going|plan|intend)\s+to\s+(kill|end|take|harm|hurt)\s+(my\s*life|myself|my\s+self|this\s+life)",
-        r"thinking\s+about\s+(suicide|ending\s+(it|my\s*life|everything))",
+        r"(thinking|thought)\s+(about|of)\s+(suicide|killing\s+(myself|my\s*self)|ending\s+(it|my\s*life|everything))",
+        r"\b(kill|killing)\s+(myself|my\s*self)\b",
+        r"no\s+(reason|point)\s+(for\s+me\s+)?(to\s+(live|continue|go\s+on)|in\s+(living|continuing|going\s+on))",
         r"(suicide|suicidal)\s*(thoughts?|ideation|plan|attempt)",
         r"want\s+to\s+die(\s|$)",
         r"ready\s+to\s+die",

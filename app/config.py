@@ -44,6 +44,10 @@ REDACT_MESSAGE_TEXT: bool = os.getenv("REDACT_MESSAGE_TEXT", "true").lower() == 
 API_PREFIX: str = "/api"
 CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "*").split(",")
 
+# ── Google Gemini Free Tier ──────────────────────────────────────────────────
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
 # ── Disclaimer ───────────────────────────────────────────────────────────────
 CLINICAL_DISCLAIMER = (
     "This system provides automated initial triage support only. "
@@ -51,4 +55,3 @@ CLINICAL_DISCLAIMER = (
     "or replace professional clinical assessment. "
     "If you are in immediate danger, please call your local emergency services."
 )
-

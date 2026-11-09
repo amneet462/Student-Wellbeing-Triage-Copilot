@@ -36,23 +36,23 @@
 ## 📅 DAY 2: Core AI, Chatbot & Syllabus Upload
 
 ### Person 1 (AI Safety & Triage)
-- [ ] Build a safety gatekeeper: check all incoming chat queries with the safety engine before passing them to Person 2's AI
-- [ ] Ensure that if a query is high-risk, the AI is immediately stopped and emergency contacts are returned
-- [ ] Add an audit log to record timestamps whenever crisis bypass is triggered (with personal text redacted)
+- [x] Build a safety gatekeeper: check all incoming chat queries with the safety engine before passing them to Person 2's AI
+- [x] Ensure that if a query is high-risk, the AI is immediately stopped and emergency contacts are returned
+- [x] Add an audit log to record timestamps whenever crisis bypass is triggered (with personal text redacted)
 
 ### Person 2 (RAG & AI Assistant)
-- [ ] Split the collected policy and wellness documents into small text chunks
-- [ ] Generate embeddings and save them into the two ChromaDB databases
-- [ ] Connect the ChromaDB databases to Google Gemini (or OpenAI) to build the RAG chatbot
-- [ ] Instruct the AI via prompt to **always cite exact document names and section numbers** in answers
-- [ ] Create the backend chat endpoint (`/api/assistant/chat`)
+- [x] Split the collected policy and wellness documents into small text chunks
+- [x] Generate embeddings and save them into the two ChromaDB databases
+- [x] Connect the ChromaDB databases to Google Gemini (or OpenAI) to build the RAG chatbot
+- [x] Instruct the AI via prompt to **always cite exact document names and section numbers** in answers
+- [x] Create the backend chat endpoint (`/api/assistant/chat`)
 
 ### Person 3 (Portal & Integration)
-- [ ] Build the chat screen in React with user/assistant message bubbles
-- [ ] Add source citation badges (e.g., `[Source: Policy Handbook §4.2]`) under assistant messages
-- [ ] Add emergency lock: if a message is flagged as a crisis, lock the chat and display emergency phone cards
-- [ ] Build a syllabus upload box supporting PDF drag-and-drop and a "Paste Text" tab
-- [ ] Create the backend endpoint (`/api/agent/parse-syllabus`) to extract assignment names and dates
+- [x] Build the chat screen in React with user/assistant message bubbles
+- [x] Add source citation badges (e.g., `[Source: Policy Handbook §4.2]`) under assistant messages
+- [x] Add emergency lock: if a message is flagged as a crisis, lock the chat and display emergency phone cards
+- [x] Build a syllabus upload box supporting PDF drag-and-drop and a "Paste Text" tab
+- [x] Create the backend endpoint (`/api/agent/parse-syllabus`) to extract assignment names and dates
 
 ---
 

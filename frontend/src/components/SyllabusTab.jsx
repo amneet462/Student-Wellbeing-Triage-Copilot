@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import axios from 'axios'
 import { 
   FileText, 
@@ -12,37 +12,66 @@ import {
   Sparkles, 
   AlertCircle,
   ChevronRight,
-  ListTodo
+  ListTodo,
+  FileCheck,
+  X,
+  GraduationCap,
+  UserCheck
 } from 'lucide-react'
 
 export default function SyllabusTab() {
   const [syllabusText, setSyllabusText] = useState('')
   const [activeInputMode, setActiveInputMode] = useState('paste') // 'paste' | 'upload'
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [courseInfo, setCourseInfo] = useState({
+    course_name: 'CS301: Advanced Algorithms & Data Structures',
+    professor: {
+      name: 'Prof. Evelyn Reed',
+      email: 'evelyn.reed@university.edu',
+      office: 'Turing Hall, Room 402'
+    },
+    assignments: [
+      { title: 'Problem Set 3: Complexity Analysis', due_date: 'Nov 12, 2026', weight: '15%' },
+      { title: 'Midterm Examination', due_date: 'Nov 20, 2026', weight: '25%' },
+      { title: 'Research Project Submission & Codebase', due_date: 'Dec 02, 2026', weight: '40%' }
+    ]
+  })
+
   const [tasks, setTasks] = useState([
     {
       id: 1,
-      title: 'Draft Introduction & Problem Statement',
-      assignment: 'CS301 Final Project Report',
-      dueDate: 'Tomorrow, 11:59 PM',
+      title: 'Review Problem Set 3 questions & write pseudocode for Q1',
+      assignment: 'Problem Set 3: Complexity Analysis',
+      dueDate: 'Today (30m Sprint)',
       duration: '30 mins',
       timeframe: 'today',
       completed: false,
     },
     {
       id: 2,
-      title: 'Outline Section 2: Algorithm Benchmark',
-      assignment: 'CS301 Final Project Report',
-      dueDate: 'In 3 days',
+      title: 'Solve mathematical proofs for Q2 and Q3',
+      assignment: 'Problem Set 3: Complexity Analysis',
+      dueDate: 'Tomorrow',
       duration: '45 mins',
       timeframe: 'this-week',
       completed: true,
     },
     {
       id: 3,
-      title: 'Review Chapter 4 Problem Set for Midterm',
-      assignment: 'Math 210 Linear Algebra Midterm',
-      dueDate: 'Next Monday',
+      title: 'Prepare Midterm Formula Sheet (Dynamic Programming & Trees)',
+      assignment: 'Midterm Examination',
+      dueDate: 'Nov 18',
+      duration: '30 mins',
+      timeframe: 'this-week',
+      completed: false,
+    },
+    {
+      id: 4,
+      title: 'Set up GitHub repository for Research Project',
+      assignment: 'Research Project Submission',
+      dueDate: 'Next Week',
       duration: '30 mins',
       timeframe: 'next-week',
       completed: false,
@@ -51,74 +80,95 @@ export default function SyllabusTab() {
 
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
+  const fileInputRef = useRef(null)
 
   const sampleSyllabus = `CS301: Advanced Algorithms & Data Structures (Spring 2026)
 Instructor: Prof. Evelyn Reed (evelyn.reed@university.edu)
+Office: Turing Hall, Room 402
 Key Deadlines:
 1. Problem Set 3: Complexity Analysis - Due Nov 12, 2026 (15%)
 2. Midterm Examination - Nov 20, 2026 (25%)
-3. Research Project Submission & Codebase - Dec 02, 2026 (40%)
+3. Research Project Submission & Codebase - Due Dec 02, 2026 (40%)
 Late Policy: 5% deduction per 24 hours up to 5 working days as per university academic regulations.`
 
   const handleLoadSample = () => {
     setSyllabusText(sampleSyllabus)
+    setActiveInputMode('paste')
+  }
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0])
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setSelectedFile(e.dataTransfer.files[0])
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
   }
 
   const handleDeescalate = async () => {
-    if (!syllabusText.trim() && activeInputMode === 'paste') return
+    if (activeInputMode === 'paste' && !syllabusText.trim()) return
+    if (activeInputMode === 'upload' && !selectedFile) return
+
     setIsLoading(true)
 
     try {
-      // Connect to mock syllabus parser endpoint
-      const res = await axios.post('/api/agent/parse-syllabus', {
-        text: syllabusText
-      })
-
-      if (res.data && res.data.tasks) {
-        setTasks(res.data.tasks)
+      let res
+      if (activeInputMode === 'upload' && selectedFile) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        res = await axios.post('/api/agent/parse-syllabus', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
       } else {
-        // Fallback sample de-escalated breakdown
-        setTasks([
-          {
-            id: 101,
-            title: 'Read Problem Set 3 questions & write pseudocode for Q1',
-            assignment: 'Problem Set 3: Complexity Analysis',
-            dueDate: 'Today (30m Sprint)',
-            duration: '30 mins',
-            timeframe: 'today',
-            completed: false,
-          },
-          {
-            id: 102,
-            title: 'Solve mathematical proofs for Q2 and Q3',
-            assignment: 'Problem Set 3: Complexity Analysis',
-            dueDate: 'Tomorrow',
-            duration: '45 mins',
-            timeframe: 'this-week',
-            completed: false,
-          },
-          {
-            id: 103,
-            title: 'Prepare Midterm Formula Sheet (Dynamic Programming & Trees)',
-            assignment: 'Midterm Examination',
-            dueDate: 'Nov 18',
-            duration: '30 mins',
-            timeframe: 'this-week',
-            completed: false,
-          },
-          {
-            id: 104,
-            title: 'Set up GitHub repository for Research Project',
-            assignment: 'Research Project Submission',
-            dueDate: 'Next Week',
-            duration: '20 mins',
-            timeframe: 'next-week',
-            completed: false,
-          }
-        ])
+        const formData = new FormData()
+        formData.append('syllabus_text', syllabusText)
+        res = await axios.post('/api/agent/parse-syllabus', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      }
+
+      if (res.data) {
+        const data = res.data
+        if (data.course_name) {
+          setCourseInfo({
+            course_name: data.course_name,
+            professor: data.professor || { name: 'Course Instructor', email: 'instructor@university.edu' },
+            assignments: data.assignments || []
+          })
+        }
+
+        if (data.generated_tasks && data.generated_tasks.length > 0) {
+          const mappedTasks = data.generated_tasks.map((gt, idx) => ({
+            id: idx + 1,
+            title: gt.task,
+            assignment: data.assignments && data.assignments[idx % data.assignments.length]
+              ? data.assignments[idx % data.assignments.length].title
+              : 'Course Deliverable',
+            dueDate: gt.day,
+            duration: `${gt.estimated_minutes || 30} mins`,
+            timeframe: idx === 0 ? 'today' : idx < 3 ? 'this-week' : 'next-week',
+            completed: false
+          }))
+          setTasks(mappedTasks)
+        }
       }
     } catch (err) {
-      console.log('Parser mock connected:', err)
+      console.error('Parser error, using fallback tasks:', err)
       // Generates instant micro-task schedule
     } finally {
       setIsLoading(false)
@@ -132,24 +182,29 @@ Late Policy: 5% deduction per 24 hours up to 5 working days as per university ac
   }
 
   const copyEmailDraft = () => {
-    const emailBody = `Subject: Coursework Extension Request - CS301 (Student ID: 2026-8941)
+    const profName = courseInfo.professor?.name || 'Prof. Reed'
+    const course = courseInfo.course_name || 'CS301'
+    const targetAssignment = courseInfo.assignments[0]?.title || 'Upcoming Problem Set'
+    const targetDate = courseInfo.assignments[0]?.due_date || 'November 12, 2026'
 
-Dear Prof. Reed,
+    const emailBody = `Subject: Coursework Extension Request - ${course} (Student ID: 2026-8941)
+
+Dear ${profName},
 
 I hope this email finds you well.
 
-I am writing to respectfully request a brief 5-working-day extension for the upcoming Problem Set 3 submission, currently due on November 12, 2026.
+I am writing to respectfully request a brief 3-working-day extension for ${targetAssignment}, currently due on ${targetDate}.
 
-Due to unforeseen extenuating personal circumstances and health concerns, I have experienced significant disruption over the past week. Under the University Academic Regulations on Extenuating Circumstances (§2.1 Self-Certification / Medical Ground), I am permitted to submit a formal request prior to the deadline.
+Due to unexpected personal extenuating circumstances and illness, I have experienced significant academic disruption. In line with the University Academic Regulations on Extenuating Circumstances (§4.3), I am prepared to provide supporting documentation through the student portal.
 
-I am actively working on the assignment and anticipate having the complete coursework ready by November 17, 2026. If required, I have submitted medical documentation through the Student Wellbeing Portal.
+I am actively making progress and anticipate completing the submission smoothly with this brief adjustment.
 
-Thank you very much for your understanding and continued support.
+Thank you very much for your understanding and ongoing support.
 
 Warm regards,
 Alex Morgan
 Student ID: 2026-8941
-BSc Computer Science`
+Department of Computer Science`
 
     navigator.clipboard.writeText(emailBody)
     setCopiedEmail(true)
@@ -229,25 +284,84 @@ BSc Computer Science`
               className="w-full p-3 rounded-xl border border-slate-200 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           ) : (
-            <div className="border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50">
-              <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-xs font-semibold text-slate-700">
-                Click or drag & drop course syllabus PDF
-              </p>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Supports PDF, DOCX, TXT up to 10MB
-              </p>
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                isDragging
+                  ? 'border-emerald-500 bg-emerald-50/50 scale-[1.01]'
+                  : selectedFile
+                  ? 'border-emerald-400 bg-emerald-50/30'
+                  : 'border-slate-200 hover:border-emerald-400 bg-slate-50/50'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,.md"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {selectedFile ? (
+                <div className="space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">{selectedFile.name}</p>
+                    <p className="text-[11px] text-slate-500">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedFile(null)
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] text-red-600 hover:text-red-700 font-semibold"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Remove file</span>
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-700">
+                    Click to browse or drag & drop syllabus PDF
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Supports PDF, TXT, MD up to 10MB
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           <button
             onClick={handleDeescalate}
-            disabled={isLoading || (!syllabusText && activeInputMode === 'paste')}
+            disabled={isLoading || (activeInputMode === 'paste' && !syllabusText.trim()) || (activeInputMode === 'upload' && !selectedFile)}
             className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
           >
             <Sparkles className="w-4 h-4" />
             <span>{isLoading ? 'De-escalating Workload...' : 'De-escalate & Generate Micro-Tasks'}</span>
           </button>
+
+          {/* Extracted Course Overview Card */}
+          {courseInfo && (
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <GraduationCap className="w-4 h-4 text-emerald-600" />
+                <span>{courseInfo.course_name}</span>
+              </div>
+              <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                <span>Instructor: {courseInfo.professor?.name}</span>
+                <span className="font-mono text-slate-400">{courseInfo.professor?.email}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Calendarized Micro-Task Checklist */}
@@ -335,7 +449,7 @@ BSc Computer Science`
                     Policy-Aligned Extension Request Email
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Drafted under Extenuating Circumstances Policy 2026 §2.1
+                    Drafted under Extenuating Circumstances Policy 2026 §4.3
                   </p>
                 </div>
               </div>
@@ -349,24 +463,24 @@ BSc Computer Science`
             </div>
 
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs font-mono text-slate-700 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">
-{`Subject: Coursework Extension Request - CS301 (Student ID: 2026-8941)
+{`Subject: Coursework Extension Request - ${courseInfo.course_name} (Student ID: 2026-8941)
 
-Dear Prof. Reed,
+Dear ${courseInfo.professor?.name || 'Prof. Reed'},
 
 I hope this email finds you well.
 
-I am writing to respectfully request a brief 5-working-day extension for the upcoming Problem Set 3 submission, currently due on November 12, 2026.
+I am writing to respectfully request a brief 3-working-day extension for ${courseInfo.assignments[0]?.title || 'the upcoming assignment'}, currently due on ${courseInfo.assignments[0]?.due_date || 'November 12, 2026'}.
 
-Due to unforeseen extenuating personal circumstances and health concerns, I have experienced significant disruption over the past week. Under the University Academic Regulations on Extenuating Circumstances (§2.1 Self-Certification / Medical Ground), I am permitted to submit a formal request prior to the deadline.
+Due to unexpected personal extenuating circumstances and illness, I have experienced significant academic disruption. In line with the University Academic Regulations on Extenuating Circumstances (§4.3), I am prepared to provide supporting documentation through the student portal.
 
-I am actively working on the assignment and anticipate having the complete coursework ready by November 17, 2026. If required, I have submitted medical documentation through the Student Wellbeing Portal.
+I am actively making progress and anticipate completing the submission smoothly with this brief adjustment.
 
-Thank you very much for your understanding and continued support.
+Thank you very much for your understanding and ongoing support.
 
 Warm regards,
 Alex Morgan
 Student ID: 2026-8941
-BSc Computer Science`}
+Department of Computer Science`}
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -406,4 +520,3 @@ BSc Computer Science`}
     </div>
   )
 }
-

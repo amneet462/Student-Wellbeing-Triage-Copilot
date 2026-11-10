@@ -59,20 +59,20 @@
 ## 📅 DAY 3: Tasks, Email Drafter & Campus Directory
 
 ### Person 1 (AI Safety & Triage)
-- [ ] Create the campus directory backend endpoint (`/api/resources/campus`)
-- [ ] Add contact details for Financial Aid, Housing, and Disability Support
-- [ ] Add rate limiting and basic error handling so the server never crashes on bad input
+- [x] Create the campus directory backend endpoint (`/api/resources/campus`)
+- [x] Add contact details for Financial Aid, Housing, and Disability Support
+- [x] Add rate limiting and basic error handling so the server never crashes on bad input
 
 ### Person 2 (RAG & AI Assistant)
-- [ ] Build interactive CBT exercise endpoints (4-7-8 breathing timer, 5-4-3-2-1 grounding guide)
-- [ ] Add fallback check: if document similarity score is too low, tell student to contact a human advisor
-- [ ] Test chatbot against 15 real university questions to make sure citations are correct
+- [x] Build interactive CBT exercise endpoints (4-7-8 breathing timer, 5-4-3-2-1 grounding guide)
+- [x] Add fallback check: if document similarity score is too low, tell student to contact a human advisor
+- [x] Test chatbot against 15 real university questions to make sure citations are correct
 
 ### Person 3 (Portal & Integration)
-- [ ] Build the task scheduler: break big syllabus deadlines into daily 30-minute checklist items (Today / This Week / Next Week)
-- [ ] Add interactive checkboxes so students can tick off completed study tasks
-- [ ] Build the *"Draft Extension Email"* button: generates a polite, formal email to the professor citing university policy with 1-click copy
-- [ ] Build the Campus Resource Directory page showing cards for Financial Aid, Housing, and Disability Support
+- [x] Build the task scheduler: break big syllabus deadlines into daily 30-minute checklist items (Today / This Week / Next Week)
+- [x] Add interactive checkboxes so students can tick off completed study tasks
+- [x] Build the *"Draft Extension Email"* button: generates a polite, formal email to the professor citing university policy with 1-click copy
+- [x] Build the Campus Resource Directory page showing cards for Financial Aid, Housing, and Disability Support
 
 ---
 

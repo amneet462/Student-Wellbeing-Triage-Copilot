@@ -78,6 +78,7 @@ export default function SyllabusTab() {
     },
   ])
 
+  const [timeframeFilter, setTimeframeFilter] = useState('all') // 'all' | 'today' | 'this-week' | 'next-week'
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const fileInputRef = useRef(null)
@@ -388,9 +389,33 @@ Department of Computer Science`
             </div>
           </div>
 
+          {/* Timeframe Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg text-xs font-medium">
+            {[
+              { id: 'all', label: `All (${tasks.length})` },
+              { id: 'today', label: `Today (${tasks.filter(t => t.timeframe === 'today').length})` },
+              { id: 'this-week', label: `This Week (${tasks.filter(t => t.timeframe === 'this-week').length})` },
+              { id: 'next-week', label: `Next Week (${tasks.filter(t => t.timeframe === 'next-week').length})` },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setTimeframeFilter(tab.id)}
+                className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                  timeframeFilter === tab.id
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* Task Checklist Items */}
           <div className="space-y-2.5">
-            {tasks.map((task) => (
+            {tasks
+              .filter(task => timeframeFilter === 'all' || task.timeframe === timeframeFilter)
+              .map((task) => (
               <div
                 key={task.id}
                 onClick={() => toggleTask(task.id)}

@@ -106,7 +106,11 @@ export default function SyllabusTab() {
     },
   ])
 
+<<<<<<< HEAD
   // Email Drafter Modal State
+=======
+  const [timeframeFilter, setTimeframeFilter] = useState('all') // 'all' | 'today' | 'this-week' | 'next-week'
+>>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [isDraftingEmail, setIsDraftingEmail] = useState(false)
@@ -526,6 +530,7 @@ Late Policy: 5% deduction per 24 hours up to 5 working days as per university ac
             </div>
           </div>
 
+<<<<<<< HEAD
           {/* Calendarized Timeframe Filter Tabs (Today / Tomorrow / Next Week) */}
           <div className="flex p-1 bg-slate-100 rounded-xl text-xs font-semibold gap-1">
             {[
@@ -541,6 +546,42 @@ Late Policy: 5% deduction per 24 hours up to 5 working days as per university ac
                   activeTimeframe === tab.id
                     ? 'bg-white text-emerald-800 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
+=======
+          {/* Timeframe Filter Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg text-xs font-medium">
+            {[
+              { id: 'all', label: `All (${tasks.length})` },
+              { id: 'today', label: `Today (${tasks.filter(t => t.timeframe === 'today').length})` },
+              { id: 'this-week', label: `This Week (${tasks.filter(t => t.timeframe === 'this-week').length})` },
+              { id: 'next-week', label: `Next Week (${tasks.filter(t => t.timeframe === 'next-week').length})` },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setTimeframeFilter(tab.id)}
+                className={`flex-1 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                  timeframeFilter === tab.id
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Task Checklist Items */}
+          <div className="space-y-2.5">
+            {tasks
+              .filter(task => timeframeFilter === 'all' || task.timeframe === timeframeFilter)
+              .map((task) => (
+              <div
+                key={task.id}
+                onClick={() => toggleTask(task.id)}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                  task.completed
+                    ? 'bg-slate-50 border-slate-200 opacity-60'
+                    : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
+>>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad
                 }`}
               >
                 {tab.label}

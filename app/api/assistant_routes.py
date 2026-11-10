@@ -152,6 +152,52 @@ CBT_EXERCISES_DATABASE: List[CBTExercise] = [
 ]
 
 
+class CBTPhase(BaseModel):
+    phase_name: str
+    duration_seconds: int
+    instruction: str
+
+
+class BreathingProtocolResponse(BaseModel):
+    id: str
+    name: str
+    total_cycles: int
+    cycle_duration_seconds: int
+    phases: List[CBTPhase]
+    clinical_rationale: str
+    precautions: str
+
+
+class GroundingStep(BaseModel):
+    sense: str
+    count: int
+    prompt: str
+    guidance: str
+
+
+class GroundingProtocolResponse(BaseModel):
+    id: str
+    name: str
+    steps: List[GroundingStep]
+    clinical_rationale: str
+    recommended_duration_min: int
+
+
+class MuscleGroupStep(BaseModel):
+    muscle_group: str
+    tension_seconds: int
+    release_seconds: int
+    instruction: str
+
+
+class PMRProtocolResponse(BaseModel):
+    id: str
+    name: str
+    total_steps: int
+    steps: List[MuscleGroupStep]
+    clinical_rationale: str
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("/chat", response_model=ChatResponse)
@@ -227,6 +273,7 @@ async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercises
             total=len(CBT_EXERCISES_DATABASE),
             exercises=CBT_EXERCISES_DATABASE,
         )
+<<<<<<< HEAD
 
     clean_type = exercise_type.strip().lower()
     filtered = [e for e in CBT_EXERCISES_DATABASE if e.type.lower() == clean_type]
@@ -236,3 +283,129 @@ async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercises
         total=len(filtered),
         exercises=filtered,
     )
+=======
+    ]
+    
+    if exercise_type:
+        filtered = [e for e in all_exercises if e.type.lower() == exercise_type.lower()]
+        return CBTExercisesResponse(status="success", exercises=filtered)
+        
+    return CBTExercisesResponse(status="success", exercises=all_exercises)
+
+
+@router.get("/cbt/478-breathing", response_model=BreathingProtocolResponse)
+async def get_478_breathing_protocol() -> BreathingProtocolResponse:
+    """
+    Returns interactive 4-7-8 parasympathetic calming breathing protocol.
+    4s Inhale, 7s Hold, 8s Exhale with neurobiological rationale.
+    """
+    return BreathingProtocolResponse(
+        id="breathing_478",
+        name="4-7-8 Relaxing Vagal Breathing Protocol",
+        total_cycles=4,
+        cycle_duration_seconds=19,
+        phases=[
+            CBTPhase(phase_name="Inhale", duration_seconds=4, instruction="Breathe in quietly through your nose into your diaphragm for 4 seconds."),
+            CBTPhase(phase_name="Hold", duration_seconds=7, instruction="Hold your breath gently without straining your throat or chest for 7 seconds."),
+            CBTPhase(phase_name="Exhale", duration_seconds=8, instruction="Exhale completely through your mouth with a soft 'whoosh' sound for 8 seconds."),
+        ],
+        clinical_rationale=(
+            "Developed by Dr. Andrew Weil. The prolonged 8-second exhale stimulates the vagus nerve, "
+            "triggering acetylcholine release which actively decelerates cardiac rhythm and silences sympathetic fight-or-flight arousal."
+        ),
+        precautions="Do not practice while driving or operating equipment. If you feel lightheaded, return to normal tidal breathing."
+    )
+
+
+@router.get("/cbt/54321-grounding", response_model=GroundingProtocolResponse)
+async def get_54321_grounding_protocol() -> GroundingProtocolResponse:
+    """
+    Returns interactive 5-4-3-2-1 somatic sensory grounding sequence for panic desensitization.
+    """
+    return GroundingProtocolResponse(
+        id="grounding_54321",
+        name="5-4-3-2-1 Somatosensory De-escalation Protocol",
+        recommended_duration_min=5,
+        steps=[
+            GroundingStep(
+                sense="Sight (Visual)",
+                count=5,
+                prompt="Acknowledge 5 things you see around you right now.",
+                guidance="Look for small details: the texture of a desk, light reflection on a wall, a pen, a plant, a shadow."
+            ),
+            GroundingStep(
+                sense="Touch (Tactile)",
+                count=4,
+                prompt="Acknowledge 4 physical sensations you can feel.",
+                guidance="Notice the firm pressure of your feet against the floor, the fabric of your sleeves, the chair supporting your back, or the cool air on your hands."
+            ),
+            GroundingStep(
+                sense="Hearing (Auditory)",
+                count=3,
+                prompt="Acknowledge 3 distinct sounds you can hear.",
+                guidance="Listen past the room: distant traffic, the hum of computer ventilation, a clock ticking, or your own breath."
+            ),
+            GroundingStep(
+                sense="Smell (Olfactory)",
+                count=2,
+                prompt="Acknowledge 2 scents you can detect.",
+                guidance="Notice your coffee, room scent, paper, or visualize two calming scents you love (lavender, ocean pine)."
+            ),
+            GroundingStep(
+                sense="Taste / Breath (Gustatory)",
+                count=1,
+                prompt="Acknowledge 1 taste, or take one deep grounding diaphragmatic breath.",
+                guidance="Notice the lingering taste of mint or water, release your tongue from the roof of your mouth, and drop your shoulders."
+            ),
+        ],
+        clinical_rationale=(
+            "Forces cognitive attention away from catastrophic internal rumination loops in the amygdala "
+            "into the parietal and occipital sensory cortices, grounding the nervous system in immediate present-moment reality."
+        )
+    )
+
+
+@router.get("/cbt/box-breathing", response_model=BreathingProtocolResponse)
+async def get_box_breathing_protocol() -> BreathingProtocolResponse:
+    """
+    Returns 4-4-4-4 Tactical Box Breathing protocol for acute exam stress regulation.
+    """
+    return BreathingProtocolResponse(
+        id="box_breathing",
+        name="4-4-4-4 Tactical Box Breathing",
+        total_cycles=4,
+        cycle_duration_seconds=16,
+        phases=[
+            CBTPhase(phase_name="Inhale", duration_seconds=4, instruction="Inhale smoothly through your nose for 4 counts, expanding lower belly."),
+            CBTPhase(phase_name="Hold (Full)", duration_seconds=4, instruction="Hold air softly in your lungs for 4 counts with relaxed shoulders."),
+            CBTPhase(phase_name="Exhale", duration_seconds=4, instruction="Exhale smoothly through your mouth for 4 counts, emptying lungs evenly."),
+            CBTPhase(phase_name="Hold (Empty)", duration_seconds=4, instruction="Pause with empty lungs for 4 counts before the next inhalation cycle."),
+        ],
+        clinical_rationale=(
+            "Used by tactical first responders and clinical psychologists to re-balance blood CO2 and O2 concentrations, "
+            "stabilizing autonomic nervous system fluctuation during acute cognitive performance stress."
+        ),
+        precautions="Maintain smooth, steady pacing rather than forceful gasping."
+    )
+
+
+@router.get("/cbt/progressive-muscle-relaxation", response_model=PMRProtocolResponse)
+async def get_pmr_protocol() -> PMRProtocolResponse:
+    """
+    Returns Progressive Muscle Relaxation (PMR) protocol.
+    """
+    return PMRProtocolResponse(
+        id="pmr_protocol",
+        name="Jacobsonian Progressive Muscle Relaxation (PMR)",
+        total_steps=5,
+        steps=[
+            MuscleGroupStep(muscle_group="Hands and Forearms", tension_seconds=5, release_seconds=10, instruction="Clench both hands into tight fists. Feel tension in wrists and forearms. Release suddenly and let fingers unclench completely."),
+            MuscleGroupStep(muscle_group="Shoulders and Trapezius", tension_seconds=5, release_seconds=10, instruction="Shrug your shoulders up toward your ears, creating deliberate tension. Drop them abruptly and feel warmth flooding your neck."),
+            MuscleGroupStep(muscle_group="Facial Muscles and Jaw", tension_seconds=5, release_seconds=10, instruction="Scrunch your forehead, squeeze eyes shut, and gently clench your jaw. Release completely, letting jaw drop slightly open."),
+            MuscleGroupStep(muscle_group="Abdomen and Core", tension_seconds=5, release_seconds=10, instruction="Tighten your stomach muscles as if preparing for impact. Release and let your belly soften completely."),
+            MuscleGroupStep(muscle_group="Feet and Calves", tension_seconds=5, release_seconds=10, instruction="Point your toes upward toward your shins, tensing calves. Release and let feet fall outward in complete relaxation."),
+        ],
+        clinical_rationale="Contrasting deliberate muscular isometric tension with sudden autonomic release teaches the brain somatic discrimination of chronic stress tension."
+    )
+
+>>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad

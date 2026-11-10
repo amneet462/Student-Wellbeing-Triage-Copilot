@@ -89,6 +89,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
 
 # ── Rate Limiting Middleware (Person 1) ────────────────────────────────────────
 app.add_middleware(RateLimitMiddleware)

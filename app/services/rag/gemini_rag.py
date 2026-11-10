@@ -147,6 +147,7 @@ class GeminiRAGAssistant:
                 )
             )
 
+<<<<<<< HEAD
         top_similarity = chunks[0]["similarity_score"] if chunks else 0.0
 
         # ── Person 2 Day 3: Low-confidence similarity fallback check (< 0.60 score) ──
@@ -161,12 +162,28 @@ class GeminiRAGAssistant:
                     f"matching your question with sufficient confidence (similarity score {top_similarity:.2f} < {SIMILARITY_FALLBACK_THRESHOLD:.2f}).\n\n"
                     f"To ensure you receive accurate and up-to-date guidance, please contact your departmental academic advisor, "
                     f"personal tutor, or visit the Student Services Hub directly."
+=======
+        # Check if similarity is too low (< 0.25) to prevent hallucinations
+        if not chunks or chunks[0]["similarity_score"] < 0.25:
+            logger.info("Low similarity score (%.4f) for query '%s'. Triggering human advisor fallback.",
+                        chunks[0]["similarity_score"] if chunks else 0.0, query[:40])
+            return RAGAnswer(
+                reply=(
+                    "I searched our official university regulations and clinical wellbeing guides, but could not find a "
+                    "verified policy directly matching your specific inquiry. To ensure you receive accurate and authoritative "
+                    "guidance without misinformation, please contact a human academic advisor or reach out to the Student Hub "
+                    "(student.advice@university.ac.uk)."
+>>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad
                 ),
                 citations=citations,
                 fallback_suggested=True,
                 model_used="low-similarity-fallback",
+<<<<<<< HEAD
                 tokens_estimated=0,
                 top_similarity=top_similarity,
+=======
+                tokens_estimated=45,
+>>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad
             )
 
         # ── Branch A: Google Gemini Free Tier ─────────────────────────────────

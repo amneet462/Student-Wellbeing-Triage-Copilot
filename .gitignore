@@ -22,6 +22,11 @@ htmlcov/
 data/chroma_db/
 *.sqlite3
 
+# Audit Logs
+data/audit_logs/
+logs/
+*.log
+
 # Node & Frontend
 node_modules/
 frontend/node_modules/

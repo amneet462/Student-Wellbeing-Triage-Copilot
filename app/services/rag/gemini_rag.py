@@ -142,18 +142,21 @@ class GeminiRAGAssistant:
                 )
             )
 
-        # Check if similarity is too low
-        if not chunks or chunks[0]["similarity_score"] < 0.20:
+        # Check if similarity is too low (< 0.25) to prevent hallucinations
+        if not chunks or chunks[0]["similarity_score"] < 0.25:
+            logger.info("Low similarity score (%.4f) for query '%s'. Triggering human advisor fallback.",
+                        chunks[0]["similarity_score"] if chunks else 0.0, query[:40])
             return RAGAnswer(
                 reply=(
-                    "I searched our university regulations and wellbeing guides, but could not find a specific "
-                    "policy directly matching your question. To ensure you receive accurate and up-to-date guidance, "
-                    "please contact your departmental academic advisor or visit the Student Services Hub."
+                    "I searched our official university regulations and clinical wellbeing guides, but could not find a "
+                    "verified policy directly matching your specific inquiry. To ensure you receive accurate and authoritative "
+                    "guidance without misinformation, please contact a human academic advisor or reach out to the Student Hub "
+                    "(student.advice@university.ac.uk)."
                 ),
                 citations=citations,
                 fallback_suggested=True,
                 model_used="low-similarity-fallback",
-                tokens_estimated=40,
+                tokens_estimated=45,
             )
 
         # ── Branch A: Google Gemini Free Tier ─────────────────────────────────

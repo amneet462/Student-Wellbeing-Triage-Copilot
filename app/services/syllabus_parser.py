@@ -7,7 +7,10 @@ Extracts:
   • Course identifier & title
   • Faculty contact details (Name, Email, Office)
   • Deliverables, dates, and grading weights
-  • Decomposed daily 30-minute micro-tasks to mitigate student executive dysfunction.
+  • Decomposed daily 30-minute micro-tasks categorized into:
+    - Today (Immediate Actionable Sprint)
+    - Tomorrow (Short-term Momentum)
+    - Next Week (Milestone Pacing)
 """
 
 from __future__ import annotations
@@ -35,7 +38,7 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 def parse_syllabus_content(text: str) -> Dict[str, Any]:
     """
     Parses syllabus text and produces structured course information,
-    extracted deliverables, and daily 30-minute actionable study micro-tasks.
+    extracted deliverables, and calendarized 30-minute study micro-tasks (Today, Tomorrow, Next Week).
     """
     cleaned = text.strip()
     lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
@@ -90,11 +93,14 @@ def parse_syllabus_content(text: str) -> Dict[str, Any]:
             due_info = due_info.replace(weight, "").strip(" -–(),")
 
         # Clean due date
-        date_match = re.search(r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,\s*\d{4})?|\d{4}-\d{2}-\d{2}|Tomorrow|Next\s+[A-Za-z]+)", due_info, re.I)
+        date_match = re.search(
+            r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}(?:,\s*\d{4})?|\d{4}-\d{2}-\d{2}|Tomorrow|Next\s+[A-Za-z]+)",
+            due_info, re.I
+        )
         cleaned_date = date_match.group(1) if date_match else (due_info or "Pending announcement")
 
         # Skip duplicates or empty titles
-        if title and not any(a["title"] == title for a in assignments):
+        if title and not any(a["title"].lower() == title.lower() for a in assignments):
             assignments.append({
                 "title": title,
                 "due_date": cleaned_date,
@@ -109,27 +115,59 @@ def parse_syllabus_content(text: str) -> Dict[str, Any]:
             {"title": "Final Research Paper & Implementation", "due_date": "Dec 16, 2026", "weight": "50%"}
         ]
 
-    # 4. Generate Manageable Daily 30-Minute Micro-Tasks (De-escalation)
+    # 4. Generate Calendarized 30-Minute Micro-Tasks (Today / Tomorrow / Next Week)
     generated_tasks: List[Dict[str, Any]] = []
-    milestone_days = ["Today (Focus 1)", "Tomorrow (Focus 2)", "Day 3 (Focus 3)", "Day 4 (Focus 4)", "Next Week (Focus 5)"]
 
     first_assignment = assignments[0]["title"] if assignments else "Upcoming Coursework"
     second_assignment = assignments[1]["title"] if len(assignments) > 1 else first_assignment
 
-    task_templates = [
-        f"Read rubric for {first_assignment} and list 3 core deliverables",
-        f"Gather lecture notes and draft 1-page working outline for {first_assignment}",
-        f"Complete primary problem or draft first 2 sections of {first_assignment}",
-        f"Review rubric compliance, format citations, and prepare initial draft",
-        f"Review lecture materials and prepare study flashcards for {second_assignment}"
+    micro_task_specs = [
+        {
+            "day": "Today (30m Sprint)",
+            "timeframe": "today",
+            "task": f"Deconstruct rubric for {first_assignment} and list 3 core deliverables (30 min)",
+            "assignment": first_assignment,
+            "estimated_minutes": 30
+        },
+        {
+            "day": "Today (Focus 2)",
+            "timeframe": "today",
+            "task": f"Gather primary lecture notes and create 1-page working skeleton for {first_assignment} (30 min)",
+            "assignment": first_assignment,
+            "estimated_minutes": 30
+        },
+        {
+            "day": "Tomorrow (Focus 1)",
+            "timeframe": "tomorrow",
+            "task": f"Draft the introductory thesis or solve Q1/Q2 for {first_assignment} (45 min)",
+            "assignment": first_assignment,
+            "estimated_minutes": 45
+        },
+        {
+            "day": "Tomorrow (Focus 2)",
+            "timeframe": "tomorrow",
+            "task": f"Conduct focused literature search and save 3 verified citations for {first_assignment} (30 min)",
+            "assignment": first_assignment,
+            "estimated_minutes": 30
+        },
+        {
+            "day": "Next Week (Milestone 1)",
+            "timeframe": "next_week",
+            "task": f"Perform peer-review check against grading rubric and proofread {first_assignment} (30 min)",
+            "assignment": first_assignment,
+            "estimated_minutes": 30
+        },
+        {
+            "day": "Next Week (Milestone 2)",
+            "timeframe": "next_week",
+            "task": f"Review lecture slide decks and prepare active recall flashcards for {second_assignment} (30 min)",
+            "assignment": second_assignment,
+            "estimated_minutes": 30
+        }
     ]
 
-    for idx, template in enumerate(task_templates[:len(milestone_days)]):
-        generated_tasks.append({
-            "day": milestone_days[idx],
-            "task": f"{template} (30 min)",
-            "estimated_minutes": 30
-        })
+    for spec in micro_task_specs:
+        generated_tasks.append(spec)
 
     return {
         "status": "success",
@@ -141,5 +179,5 @@ def parse_syllabus_content(text: str) -> Dict[str, Any]:
         },
         "assignments": assignments,
         "generated_tasks": generated_tasks,
-        "notes": f"Successfully parsed {len(assignments)} deliverables. Workload structured into daily 30-minute micro-milestones."
+        "notes": f"Successfully parsed {len(assignments)} deliverables. Calendarized into calm micro-checklists (Today / Tomorrow / Next Week)."
     }

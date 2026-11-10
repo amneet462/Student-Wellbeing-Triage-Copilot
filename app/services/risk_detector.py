@@ -55,6 +55,10 @@ _CRITICAL_PATTERNS: list[re.Pattern] = [
     for p in [
         # Direct self-harm intent
         r"(want|going|plan|intend)\s+to\s+(kill|end|take|harm|hurt)\s+(my\s*life|myself|my\s+self|this\s+life)",
+        r"\b(?:off|unalive|un-alive)\s+(?:myself|my\s+self)\b",
+        r"\b(?:i'?m|i\s+am)\s+done\s+with\s+(?:life|living)\b",
+        r"\b(?:i\s+)?(?:want|wanna|going\s+to|gonna|might|plan\s+to)\s+(?:to\s+)?kms\b",
+        r"\b(?:took|taken|swallowed|ingested)\s+(?:a\s+)?(?:bunch|handful|lot)\s+of\s+(?:pills|tablets|meds|medication)\b",
         r"(thinking|thought)\s+(about|of)\s+(suicide|killing\s+(myself|my\s*self)|ending\s+(it|my\s*life|everything))",
         r"\b(kill|killing)\s+(myself|my\s*self)\b",
         r"no\s+(reason|point)\s+(for\s+me\s+)?(to\s+(live|continue|go\s+on)|in\s+(living|continuing|going\s+on))",
@@ -407,4 +411,3 @@ class RiskDetector:
         ml_rank = order.index(ml_level)
 
         return order[max(rule_rank, ml_rank)]
-

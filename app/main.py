@@ -7,8 +7,9 @@ This module wires together:
   • FastAPI application configuration
   • Router registration
   • CORS middleware
+  • In-memory rate limiting middleware
+  • Comprehensive global exception handlers (preventing 500 crashes)
   • Startup/shutdown lifecycle hooks
-  • Global exception handling
 
 This is NOT a clinical tool. See the disclaimer in config.py.
 """
@@ -19,15 +20,20 @@ import logging
 import sys
 
 import uvicorn
-from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.triage_routes import router as triage_router
 from app.api.assistant_routes import router as assistant_router
 from app.api.agent_routes import router as agent_router
 from app.api.resource_routes import router as resource_router
+from app.services.rate_limiter import RateLimitMiddleware
 from app.config import (
     API_PREFIX,
     APP_DESCRIPTION,
@@ -38,8 +44,6 @@ from app.config import (
     LOG_LEVEL,
     BASE_DIR,
 )
-
-from contextlib import asynccontextmanager
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -77,7 +81,7 @@ app = FastAPI(
 )
 
 # ── CORS Middleware ───────────────────────────────────────────────────────────
-allowed_origins = list(set(CORS_ORIGINS + ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "*"]))
+allowed_origins = list(set(CORS_ORIGINS + ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:3000", "*"]))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -85,6 +89,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# ── Rate Limiting Middleware (Person 1) ────────────────────────────────────────
+app.add_middleware(RateLimitMiddleware)
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(triage_router, prefix=API_PREFIX)
@@ -119,29 +126,77 @@ async def root():
     }
 
 
-# ── Global Exception Handler ──────────────────────────────────────────────────
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error("Unhandled exception on %s: %s", request.url.path, exc, exc_info=True)
+# ── Global Exception Handlers (Person 1: Prevents 500 Crashes) ────────────────
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    """Handles standard HTTP errors (404, 403, 429, etc.) returning structured JSON."""
+    logger.warning("HTTP %d error on %s: %s", exc.status_code, request.url.path, exc.detail)
     return JSONResponse(
-        status_code=500,
+        status_code=exc.status_code,
         content={
-            "error": "An internal error occurred.",
-            "detail": "Please try again or contact support.",
+            "error": exc.detail if isinstance(exc.detail, str) else "HTTP Error",
+            "status_code": exc.status_code,
+            "path": request.url.path,
             "disclaimer": CLINICAL_DISCLAIMER,
         },
     )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Handles Pydantic validation errors cleanly without unhandled crashes."""
+    logger.warning("Validation failure on %s: %s", request.url.path, exc.errors())
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": "Request validation failed.",
+            "detail": jsonable_encoder(exc.errors()),
+            "path": request.url.path,
+            "disclaimer": CLINICAL_DISCLAIMER,
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all unhandled exception handler ensuring graceful degradation without server crash."""
+    logger.error("Unhandled exception on %s: %s", request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "An internal error occurred.",
+            "detail": "Please try again or contact university support.",
+            "disclaimer": CLINICAL_DISCLAIMER,
+        },
+    )
 
 
 # ── Dev entry point ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level=LOG_LEVEL.lower(),
-    )
+    import socket
+    port = 8000
+    sockets = []
+    try:
+        s4 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s4.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s4.bind(('0.0.0.0', port))
+        s4.listen(256)
+        sockets.append(s4)
+    except Exception:
+        pass
+    try:
+        s6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        s6.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+        s6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s6.bind(('::', port))
+        s6.listen(256)
+        sockets.append(s6)
+    except Exception:
+        pass
 
+    config = uvicorn.Config(app, log_level=LOG_LEVEL.lower())
+    server = uvicorn.Server(config)
+    if sockets:
+        server.run(sockets=sockets)
+    else:
+        uvicorn.run("app.main:app", host="0.0.0.0", port=port, log_level=LOG_LEVEL.lower())

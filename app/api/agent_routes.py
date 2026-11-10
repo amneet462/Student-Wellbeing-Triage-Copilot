@@ -5,8 +5,8 @@ FastAPI routes for Productivity Agents: Syllabus De-escalation & Extension Email
 
 Integrates:
   • Syllabus Parser with PDF upload extraction (via pypdf) & text paste support.
-  • Automated decomposition into manageable 30-minute daily micro-tasks.
-  • 1-Click Extension Request Email Drafter adhering to verified university regulations.
+  • Automated calendarized decomposition into manageable 30-minute micro-tasks (Today / Tomorrow / Next Week).
+  • 1-Click Extension Request Email Drafter adhering to verified university regulations (§4.3).
 """
 
 from __future__ import annotations
@@ -38,9 +38,11 @@ class AssignmentItem(BaseModel):
 
 
 class DecomposedTask(BaseModel):
-    day: str = Field(..., description="Target milestone day (e.g. 'Day 1', 'Today').")
+    day: str = Field(..., description="Target milestone day (e.g. 'Today (30m Sprint)', 'Tomorrow').")
     task: str = Field(..., description="Actionable 30-45 minute micro-task description.")
     estimated_minutes: int = Field(30, description="Estimated time required.")
+    timeframe: Optional[str] = Field("today", description="Calendarized slot: 'today' | 'tomorrow' | 'next_week'")
+    assignment: Optional[str] = Field(None, description="Course deliverable linked to this task.")
 
 
 class SyllabusParseResponse(BaseModel):
@@ -58,7 +60,9 @@ class EmailDraftRequest(BaseModel):
     assignment_title: str = Field(..., description="Title of the assignment needing extension.")
     due_date: str = Field(..., description="Current deadline date.")
     reason: str = Field(..., description="Brief reason (e.g. sudden illness, family emergency).")
-    requested_days: Optional[int] = Field(3, description="Number of additional days requested.")
+    requested_days: Optional[int] = Field(3, description="Number of additional working days requested.")
+    student_name: Optional[str] = Field("[Student Name]", description="Student full name.")
+    student_id: Optional[str] = Field("[Student ID]", description="Student institutional ID.")
 
 
 class EmailDraftResponse(BaseModel):
@@ -79,7 +83,7 @@ async def parse_syllabus(
     """
     Syllabus De-escalation Agent (Person 3).
     Extracts course info, assignments, deadlines, and automatically generates
-    manageable daily 30-minute micro-tasks.
+    calendarized daily 30-minute micro-tasks (Today / Tomorrow / Next Week).
     Supports PDF drag-and-drop file upload and text paste (via Form or JSON).
     """
     extracted_text = ""
@@ -110,8 +114,15 @@ async def parse_syllabus(
             extracted_text = syllabus_text
 
     if not extracted_text.strip():
-        # Return fallback structured response if empty
-        extracted_text = "CS101: Introduction to Computer Systems & Architecture\nInstructor: Dr. Sarah Jenkins"
+        # Fallback structured syllabus text if empty
+        extracted_text = (
+            "CS301: Advanced Algorithms & Data Structures\n"
+            "Instructor: Prof. Evelyn Reed (evelyn.reed@university.edu)\n"
+            "Office: Turing Hall, Room 402\n"
+            "Problem Set 3: Complexity Analysis - Due Nov 12, 2026 (15%)\n"
+            "Midterm Examination - Due Nov 20, 2026 (25%)\n"
+            "Research Project Submission - Due Dec 02, 2026 (40%)"
+        )
 
     result = parse_syllabus_content(extracted_text)
 
@@ -129,31 +140,34 @@ async def parse_syllabus(
 async def draft_extension_email(request: EmailDraftRequest) -> EmailDraftResponse:
     """
     1-Click Extension Request Email Drafter (Person 3).
-    Generates a respectful, policy-compliant extension request to faculty.
+    Generates a respectful, policy-compliant extension request to faculty citing §4.3.
     """
     logger.info("Drafting extension request for course: %s", request.course_code)
 
-    subject = f"Extension Request: {request.assignment_title} ({request.course_code})"
+    student_label = request.student_name or "[Student Name]"
+    id_label = request.student_id or "[Student ID]"
+
+    subject = f"Extension Request: {request.assignment_title} ({request.course_code}) - {id_label}"
     body = (
         f"Dear {request.professor_name},\n\n"
         f"I hope this message finds you well.\n\n"
-        f"I am writing to respectfully request a brief {request.requested_days}-day extension on "
+        f"I am writing to respectfully request a brief {request.requested_days}-working-day extension for "
         f"{request.assignment_title} (currently due on {request.due_date}) for {request.course_code}.\n\n"
         f"Unfortunately, I have experienced unexpected difficulties due to {request.reason}, which has "
-        f"substantially impacted my ability to complete the work to my usual standard.\n\n"
-        f"I am closely following the university's mitigating circumstances guidelines and am prepared "
-        f"to submit supporting documentation through the portal. I have already completed substantial "
-        f"preparatory work and would be grateful for an adjusted submission deadline.\n\n"
+        f"substantially impacted my ability to complete the work to my usual academic standard.\n\n"
+        f"In accordance with the University Academic Regulations on Extenuating Circumstances (§4.3), "
+        f"I am prepared to submit supporting documentation through the official student portal. I have already "
+        f"made good progress on the assignment and anticipate completing the submission smoothly with this brief adjustment.\n\n"
         f"Thank you very much for your time, consideration, and support.\n\n"
         f"Respectfully,\n"
-        f"[Student Name]\n"
-        f"[Student ID Number]\n"
-        f"Department of Computer Science"
+        f"{student_label}\n"
+        f"Student ID: {id_label}\n"
+        f"Academic Department: {request.course_code}"
     )
 
     return EmailDraftResponse(
         status="success",
         subject=subject,
         body=body,
-        policy_cited="University Academic Regulations Handbook 2026 §4.3 (Extenuating Circumstances)",
+        policy_cited="University Academic Regulations Handbook 2026 §4.3 (Extenuating Circumstances & Mitigating Grounds)",
     )

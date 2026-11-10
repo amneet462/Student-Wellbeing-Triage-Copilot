@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { 
   Send, 
@@ -13,7 +13,12 @@ import {
   Unlock, 
   RefreshCw, 
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Heart,
+  X,
+  Clock,
+  CheckCircle,
+  Activity
 } from 'lucide-react'
 
 export default function ChatTab({ onTriggerEmergency }) {
@@ -24,10 +29,7 @@ export default function ChatTab({ onTriggerEmergency }) {
       text: "Hello, I am your Student Wellbeing & Triage Copilot. I'm here to help you navigate academic regulations, deadline extensions, hardship funds, and CBT calming techniques. How are you feeling today?",
       category: 'general',
       riskLevel: 'low',
-      citations: [
-        'Campus Wellbeing Handbook 2026',
-        'Academic Regulations Overview §1.0'
-      ],
+      citations: [],
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ])
@@ -35,6 +37,13 @@ export default function ChatTab({ onTriggerEmergency }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
   const [crisisContacts, setCrisisContacts] = useState([])
+
+  // CBT Grounding Exercises Modal State (Person 2 Day 3)
+  const [cbtModalOpen, setCbtModalOpen] = useState(false)
+  const [cbtExercises, setCbtExercises] = useState([])
+  const [selectedCbtExercise, setSelectedCbtExercise] = useState(null)
+  const [isLoadingCbt, setIsLoadingCbt] = useState(false)
+  const [cbtError, setCbtError] = useState('')
 
   const defaultEmergencyContacts = [
     {
@@ -70,6 +79,35 @@ export default function ChatTab({ onTriggerEmergency }) {
     { label: 'Disability accommodations', text: 'How do I request extra time accommodations for exams?' },
   ]
 
+  // Fetch structured CBT exercises from Person 2's endpoint
+  const loadCbtExercises = async () => {
+    setIsLoadingCbt(true)
+    setCbtError('')
+    try {
+      const res = await axios.get('/api/assistant/cbt-exercises')
+      if (res.data && Array.isArray(res.data.exercises) && res.data.exercises.length > 0) {
+        setCbtExercises(res.data.exercises)
+        if (!selectedCbtExercise && res.data.exercises.length > 0) {
+          setSelectedCbtExercise(res.data.exercises[0])
+        }
+      } else {
+        setCbtError('The exercises service returned no exercises. Please try again.')
+      }
+    } catch (err) {
+      console.error('Failed to load CBT exercises:', err)
+      setCbtError('Could not load exercises. Check the server connection and try again.')
+    } finally {
+      setIsLoadingCbt(false)
+    }
+  }
+
+  const handleOpenCbtModal = () => {
+    setCbtModalOpen(true)
+    if (cbtExercises.length === 0) {
+      loadCbtExercises()
+    }
+  }
+
   const handleSend = async (textToSend) => {
     const query = (textToSend || inputText).trim()
     if (!query || isLoading || isLocked) return
@@ -86,7 +124,7 @@ export default function ChatTab({ onTriggerEmergency }) {
     setIsLoading(true)
 
     try {
-      // Send message to Assistant Chat endpoint protected by Safety Gatekeeper
+      // Send message to Assistant Chat endpoint protected by Safety Gatekeeper and Similarity Guard (< 0.60)
       const chatRes = await axios.post('/api/assistant/chat', {
         query: query,
         session_id: 'web-session-student-1'
@@ -127,22 +165,23 @@ export default function ChatTab({ onTriggerEmergency }) {
         id: `assistant-${Date.now()}`,
         sender: 'assistant',
         text: data.reply,
-        category: 'academic',
+        category: data.fallback_suggested ? 'advisor fallback' : 'verified policy',
         riskLevel: 'low',
-        citations: citationsFormatted.length > 0 ? citationsFormatted : ['[Source: University Academic Regulations Handbook 2026 §4.3]'],
+        fallbackSuggested: data.fallback_suggested,
+        citations: citationsFormatted,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages((prev) => [...prev, assistantMsg])
     } catch (err) {
       console.error('Chat error:', err)
-      // Fallback message
       const errorMsg = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        text: "I retrieved official campus guidance. Under University Academic Regulations §4.3, you may request extenuating circumstances extensions up to 48 hours prior to deadlines through the student portal.",
-        category: 'academic',
-        riskLevel: 'low',
-        citations: ['[Source: University Academic Regulations Handbook 2026 §4.3]'],
+        text: "I couldn't connect to the assistant service, so your message was not answered. Check the server connection and try again.",
+        category: 'connection error',
+        riskLevel: 'unknown',
+        isError: true,
+        citations: [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages((prev) => [...prev, errorMsg])
@@ -152,7 +191,7 @@ export default function ChatTab({ onTriggerEmergency }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] max-w-5xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-140px)] max-w-5xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fadeIn">
       {/* Chat Sub-header */}
       <div className="px-6 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -164,12 +203,21 @@ export default function ChatTab({ onTriggerEmergency }) {
               Wellbeing & Policy Assistant
             </h2>
             <p className="text-[11px] text-slate-500">
-              Powered by Dual-Store RAG • Deterministic AI Safety Gatekeeper
+              Powered by Dual-Store RAG • Fallback Guard (&lt;0.60) • AI Safety Gatekeeper
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* CBT Calming Exercises Button (Person 2 Day 3) */}
+          <button
+            onClick={handleOpenCbtModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-600" />
+            <span>CBT Grounding Exercises</span>
+          </button>
+
           {isLocked ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-800 border border-red-300 animate-pulse">
               <Lock className="w-3.5 h-3.5 text-red-600" />
@@ -184,7 +232,7 @@ export default function ChatTab({ onTriggerEmergency }) {
         </div>
       </div>
 
-      {/* Emergency Crisis Lockdown Banner (Day 2 Deliverable) */}
+      {/* Emergency Crisis Lockdown Banner */}
       {isLocked && (
         <div className="bg-red-50 border-b border-red-200 p-4 animate-fadeIn">
           <div className="flex items-start justify-between gap-3 mb-3">
@@ -258,19 +306,31 @@ export default function ChatTab({ onTriggerEmergency }) {
                       ? 'bg-slate-900 text-white rounded-tr-sm shadow-sm'
                       : msg.isEmergency
                       ? 'bg-red-50 border border-red-300 text-red-900 rounded-tl-sm font-medium'
+                      : msg.isError
+                      ? 'bg-amber-50 border border-amber-300 text-amber-900 rounded-tl-sm'
+                      : msg.fallbackSuggested
+                      ? 'bg-amber-50/80 text-amber-950 rounded-tl-sm border border-amber-200 shadow-sm'
                       : 'bg-slate-100 text-slate-800 rounded-tl-sm border border-slate-200/80 shadow-sm'
                   }`}
                 >
                   <p className="whitespace-pre-line">{msg.text}</p>
                 </div>
 
-                {/* Metadata & Source Citation Badges (Day 2 Deliverable) */}
+                {/* Metadata & Source Citation Badges */}
                 {!isUser && (
                   <div className="space-y-1.5 px-1">
                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
                       <span>{msg.timestamp}</span>
                       <span>•</span>
-                      <span className="capitalize font-medium text-slate-700">Category: {msg.category}</span>
+                      <span className="capitalize font-medium text-slate-700">Status: {msg.category}</span>
+                      {msg.fallbackSuggested && (
+                        <>
+                          <span>•</span>
+                          <span className="text-amber-700 font-semibold bg-amber-100 px-1.5 py-0.5 rounded text-[10px]">
+                            Human Advisor Recommended
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     {msg.citations && msg.citations.length > 0 && (
@@ -300,7 +360,7 @@ export default function ChatTab({ onTriggerEmergency }) {
             </div>
             <div className="p-3.5 bg-slate-100 rounded-2xl rounded-tl-sm border border-slate-200 text-xs text-slate-500 flex items-center gap-2">
               <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-              <span>Analyzing safety gatekeeper and querying vector database...</span>
+              <span>Checking safety gatekeeper and similarity threshold (&gt;0.60)...</span>
             </div>
           </div>
         )}
@@ -354,6 +414,124 @@ export default function ChatTab({ onTriggerEmergency }) {
           <Send className="w-4 h-4" />
         </button>
       </form>
+
+      {/* Interactive CBT Exercises Modal (Person 2 Day 3) */}
+      {cbtModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Evidence-Based CBT & Somatic Grounding Exercises
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Somatic regulation and cognitive reframing tools (/api/assistant/cbt-exercises)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setCbtModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Exercise Selector Buttons */}
+            {isLoadingCbt && (
+              <div className="flex items-center gap-2 text-xs text-slate-500" role="status">
+                <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                Loading exercises...
+              </div>
+            )}
+            {cbtError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="alert">
+                <p>{cbtError}</p>
+                <button
+                  type="button"
+                  onClick={loadCbtExercises}
+                  className="mt-1 font-semibold underline"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {cbtExercises.map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => setSelectedCbtExercise(ex)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border ${
+                    selectedCbtExercise?.id === ex.id
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {ex.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Exercise Detail */}
+            {selectedCbtExercise && (
+              <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {selectedCbtExercise.name}
+                  </h4>
+                  <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                    <Clock className="w-3 h-3" />
+                    {selectedCbtExercise.duration_min} minutes
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed italic bg-white p-2.5 rounded-lg border border-slate-200">
+                  Clinical Rationale: {selectedCbtExercise.clinical_rationale}
+                </p>
+
+                {selectedCbtExercise.target_symptoms && selectedCbtExercise.target_symptoms.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Target Symptoms:</span>
+                    {selectedCbtExercise.target_symptoms.map((sym, sIdx) => (
+                      <span key={sIdx} className="text-[10px] bg-slate-200/70 text-slate-700 px-2 py-0.5 rounded-md">
+                        {sym}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-2 pt-2">
+                  <p className="text-xs font-bold text-slate-800">Sequential Action Steps:</p>
+                  <ol className="space-y-1.5">
+                    {selectedCbtExercise.steps.map((step, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100">
+                        <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="mt-0.5">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setCbtModalOpen(false)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

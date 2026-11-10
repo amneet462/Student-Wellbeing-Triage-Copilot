@@ -9,6 +9,7 @@ Features:
   • Strict token conservation: retrieves top 2-3 chunks, limits max output tokens (350).
   • Prompt engineered to ALWAYS enforce verbatim citations: [Source: <Document> §<Section>].
   • Zero-cost local deterministic fallback if API key is not configured or offline.
+  • Low-confidence similarity fallback guard (< 0.60 score) routing to human advisors (Person 2 Day 3).
 """
 
 from __future__ import annotations
@@ -28,7 +29,8 @@ from app.services.rag.vector_store import (
 
 logger = logging.getLogger(__name__)
 
-# Prompt forcing exact document names and section numbers
+SIMILARITY_FALLBACK_THRESHOLD = 0.60
+
 SYSTEM_PROMPT = (
     "You are an empathetic, highly dependable Student Wellbeing & Academic Regulations Copilot.\n"
     "Your duty is to support university students with accurate, policy-compliant guidance.\n\n"
@@ -57,11 +59,13 @@ class RAGAnswer:
     fallback_suggested: bool = False
     model_used: str = "local-retriever"
     tokens_estimated: int = 0
+    top_similarity: float = 0.0
 
 
 class GeminiRAGAssistant:
     """
     Dual-Store RAG Assistant powered by Google Gemini and ChromaDB.
+    Guarded by a low-confidence similarity threshold (< 0.60 score) to prevent hallucination.
     """
 
     def __init__(
@@ -116,13 +120,14 @@ class GeminiRAGAssistant:
         Executes citation-backed RAG pipeline:
           1. Selects collection based on query intent.
           2. Retrieves top 2-3 chunks from ChromaDB.
-          3. Synthesizes response with Google Gemini (or local synthesizer) citing exact sources.
+          3. Evaluates low-confidence similarity threshold (< 0.60 score).
+          4. Synthesizes response with Google Gemini (or local synthesizer) citing exact sources.
         """
         target_store = self._route_query(query, category)
         chunks = self._retrieve_context(query, target_store, n_results=2)
 
         # If primary store gave poor results, check other store as fallback
-        if not chunks or (chunks and chunks[0]["similarity_score"] < 0.25):
+        if not chunks or (chunks and chunks[0]["similarity_score"] < SIMILARITY_FALLBACK_THRESHOLD):
             alternate_store = WELLNESS_COLLECTION if target_store == POLICIES_COLLECTION else POLICIES_COLLECTION
             alt_chunks = self._retrieve_context(query, alternate_store, n_results=2)
             if alt_chunks and (not chunks or alt_chunks[0]["similarity_score"] > chunks[0]["similarity_score"]):
@@ -142,18 +147,26 @@ class GeminiRAGAssistant:
                 )
             )
 
-        # Check if similarity is too low
-        if not chunks or chunks[0]["similarity_score"] < 0.20:
+        top_similarity = chunks[0]["similarity_score"] if chunks else 0.0
+
+        # ── Person 2 Day 3: Low-confidence similarity fallback check (< 0.60 score) ──
+        if not chunks or top_similarity < SIMILARITY_FALLBACK_THRESHOLD:
+            logger.info(
+                "Low similarity score (%.4f < %.2f) triggered fallback guard",
+                top_similarity, SIMILARITY_FALLBACK_THRESHOLD
+            )
             return RAGAnswer(
                 reply=(
-                    "I searched our university regulations and wellbeing guides, but could not find a specific "
-                    "policy directly matching your question. To ensure you receive accurate and up-to-date guidance, "
-                    "please contact your departmental academic advisor or visit the Student Services Hub."
+                    f"I searched our university regulations and wellbeing guides, but could not find a verified policy "
+                    f"matching your question with sufficient confidence (similarity score {top_similarity:.2f} < {SIMILARITY_FALLBACK_THRESHOLD:.2f}).\n\n"
+                    f"To ensure you receive accurate and up-to-date guidance, please contact your departmental academic advisor, "
+                    f"personal tutor, or visit the Student Services Hub directly."
                 ),
                 citations=citations,
                 fallback_suggested=True,
                 model_used="low-similarity-fallback",
-                tokens_estimated=40,
+                tokens_estimated=0,
+                top_similarity=top_similarity,
             )
 
         # ── Branch A: Google Gemini Free Tier ─────────────────────────────────
@@ -185,6 +198,7 @@ class GeminiRAGAssistant:
                         fallback_suggested=False,
                         model_used=self.model_name,
                         tokens_estimated=len(user_content.split()) + len(reply_text.split()),
+                        top_similarity=top_similarity,
                     )
             except Exception as exc:
                 logger.warning("Gemini API call failed (%s). Falling back to local synthesis.", exc)
@@ -220,4 +234,5 @@ class GeminiRAGAssistant:
             fallback_suggested=False,
             model_used="local-chroma-retriever",
             tokens_estimated=0,
+            top_similarity=top_similarity,
         )

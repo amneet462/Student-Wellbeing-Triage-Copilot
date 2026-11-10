@@ -6,8 +6,8 @@ FastAPI routes for the AI Support Assistant and Dual-Store RAG service (Person 2
 Integrates:
   • Pre-LLM Safety Gatekeeper (Person 1) to halt AI during acute crisis.
   • Dual-Store ChromaDB Vector Knowledge Base (Policies + CBT Wellness).
-  • Google Gemini Free-Tier RAG Engine with prompt-enforced verbatim citations.
-  • Deterministic local fallback ensuring 0 cost and token minimization.
+  • Low-confidence similarity fallback check (< 0.60 score) routing to human advisors.
+  • Interactive CBT and somatic grounding exercises (/api/assistant/cbt-exercises).
 """
 
 from __future__ import annotations
@@ -50,24 +50,106 @@ class ChatResponse(BaseModel):
     reply: str = Field(..., description="Assistant response text with verified information.")
     citations: List[Citation] = Field(default_factory=list, description="Verified citations backing the answer.")
     safety_checked: bool = Field(True, description="Indicates safety pre-screening passed.")
-    fallback_suggested: bool = Field(False, description="True if query is outside verified knowledge base.")
+    fallback_suggested: bool = Field(False, description="True if query is outside verified knowledge base (< 0.60 score).")
     is_crisis: bool = Field(False, description="True if acute crisis was intercepted.")
     emergency_contacts: List[EmergencyContact] = Field(default_factory=list, description="Emergency contacts if crisis.")
     model_used: Optional[str] = Field(None, description="Model that produced the answer.")
+    top_similarity: Optional[float] = Field(None, description="Vector similarity confidence score.")
 
 
 class CBTExercise(BaseModel):
-    id: str
-    name: str
-    type: str
-    duration_min: int
-    steps: List[str]
-    clinical_rationale: str
+    id: str = Field(..., description="Unique exercise identifier.")
+    name: str = Field(..., description="Clinical exercise title.")
+    type: str = Field(..., description="grounding | breathing | cbt_reframing | somatic")
+    duration_min: int = Field(..., description="Estimated completion duration in minutes.")
+    steps: List[str] = Field(..., description="Sequential clinical action steps.")
+    clinical_rationale: str = Field(..., description="Neurobiological and psychological rationale.")
+    target_symptoms: List[str] = Field(default_factory=list, description="Specific acute symptoms addressed.")
 
 
 class CBTExercisesResponse(BaseModel):
-    status: str
-    exercises: List[CBTExercise]
+    status: str = Field("success", description="Response status.")
+    total: int = Field(..., description="Total count of exercises returned.")
+    exercises: List[CBTExercise] = Field(default_factory=list, description="List of structured grounding exercises.")
+
+
+CBT_EXERCISES_DATABASE: List[CBTExercise] = [
+    CBTExercise(
+        id="grounding_54321",
+        name="5-4-3-2-1 Sensory Grounding Guide",
+        type="grounding",
+        duration_min=5,
+        steps=[
+            "LOOK: Identify 5 distinct objects you can see right now (e.g., notice their color, shape, or shadow).",
+            "TOUCH: Notice 4 physical contact points (e.g., the pressure of your feet against the floor, your back against the chair).",
+            "HEAR: Listen carefully and identify 3 distinct sounds around you (e.g., humming AC, outdoor traffic, your own breath).",
+            "SMELL: Notice 2 subtle scents around you, or recall two calming scents (e.g., lavender, fresh rain).",
+            "TASTE / BREATHE: Notice 1 taste in your mouth, and take one slow, deep breath in and out."
+        ],
+        clinical_rationale="Activates the prefrontal cortex and sensory neocortex circuits, disrupting limbic hyper-arousal and acute panic spiraling.",
+        target_symptoms=["Acute Panic", "Derealization", "Racing Thoughts", "Dissociation"]
+    ),
+    CBTExercise(
+        id="box_breathing",
+        name="4-4-4-4 Square Box Breathing",
+        type="breathing",
+        duration_min=4,
+        steps=[
+            "STEP 1 (INHALE): Inhale smoothly through your nose for a count of 4 seconds.",
+            "STEP 2 (HOLD): Hold your breath gently with relaxed shoulders for a count of 4 seconds.",
+            "STEP 3 (EXHALE): Exhale steadily through parted lips for a count of 4 seconds.",
+            "STEP 4 (PAUSE): Hold your lungs empty gently for a count of 4 seconds.",
+            "CYCLE: Repeat this square sequence for 4 to 6 full cycles."
+        ],
+        clinical_rationale="Stimulates the vagus nerve and activates parasympathetic dominance, lowering elevated heart rate and cortisol levels.",
+        target_symptoms=["Heart Palpitations", "Shortness of Breath", "Hyperventilation", "Pre-Exam Jitters"]
+    ),
+    CBTExercise(
+        id="breathing_478",
+        name="4-7-8 Relaxing Breath Timer",
+        type="breathing",
+        duration_min=5,
+        steps=[
+            "STEP 1: Place the tip of your tongue against the tissue ridge behind your upper front teeth.",
+            "STEP 2: Exhale completely through your mouth, making a gentle whoosh sound.",
+            "STEP 3: Close your mouth and inhale quietly through your nose to a mental count of 4.",
+            "STEP 4: Hold your breath comfortably for a count of 7 seconds.",
+            "STEP 5: Exhale completely through your mouth, making a whoosh sound to a count of 8 seconds.",
+            "CYCLE: Repeat the 4-7-8 cycle 4 times."
+        ],
+        clinical_rationale="Prolonged exhalation relative to inhalation triggers the baroreceptor reflex and induces rapid physiological relaxation.",
+        target_symptoms=["Insomnia", "Acute Anxiety Spirals", "Severe Muscle Tightness"]
+    ),
+    CBTExercise(
+        id="progressive_muscle_relaxation",
+        name="Progressive Somatic Tension Release",
+        type="somatic",
+        duration_min=7,
+        steps=[
+            "STEP 1 (FOREHEAD & JAW): Clench your eyebrows together and tighten your jaw for 5 seconds. Now release and feel the warmth.",
+            "STEP 2 (SHOULDERS & NECK): Pull your shoulders up toward your ears, hold tightly for 5 seconds, then drop them completely.",
+            "STEP 3 (HANDS & ARMS): Squeeze your fists and tense your forearms for 5 seconds, then release and spread your fingers wide.",
+            "STEP 4 (ABDOMEN): Tighten your abdominal muscles for 5 seconds, then breathe out and let your stomach soften completely.",
+            "STEP 5 (LEGS & FEET): Curl your toes down and tense your calf muscles for 5 seconds, then let go completely and observe stillness."
+        ],
+        clinical_rationale="Contrast training between isometric contraction and flaccid release enables conscious relaxation of stress-induced physical tension.",
+        target_symptoms=["Jaw Clenching", "Tension Headaches", "Restlessness", "Somatic Tremors"]
+    ),
+    CBTExercise(
+        id="thought_reframing",
+        name="Academic Imposter & Panic Reframing",
+        type="cbt_reframing",
+        duration_min=8,
+        steps=[
+            "STEP 1 (CATCH THE DISTORTION): Write down the catastrophic belief (e.g., 'If I don't get an A on this assignment, I'm a failure').",
+            "STEP 2 (IDENTIFY BIAS): Label the cognitive distortion (e.g., All-or-Nothing Thinking, Catastrophizing, Fortune-Telling).",
+            "STEP 3 (EXAMINE EVIDENCE): What concrete factual evidence disproves this thought? What challenges have you navigated before?",
+            "STEP 4 (CREATE A BALANCED THOUGHT): Draft a grounded statement: 'One grade does not define my intelligence or future. I can take one 30-minute action step today.'"
+        ],
+        clinical_rationale="Cognitive restructuring directly alters negative automatic thoughts (NATs), mitigating avoidance behavior and restoring executive function.",
+        target_symptoms=["Academic Overwhelm", "Perfectionism", "Procrastination Paralysis", "Imposter Syndrome"]
+    )
+]
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -77,18 +159,18 @@ async def chat_with_assistant(request: ChatRequest) -> ChatResponse:
     """
     RAG Assistant Chat Endpoint (Person 2).
     Generates citation-backed answers from campus policy and CBT wellness knowledge stores.
-    Protected by Person 1's Pre-LLM Safety Gatekeeper.
+    Protected by Person 1's Pre-LLM Safety Gatekeeper and Person 2's Low-Confidence Fallback Guard (< 0.60 score).
     """
     raw_query = (request.query or request.message or "").strip()
     if not raw_query:
         raise HTTPException(status_code=422, detail="Query or message field must not be empty.")
 
-    logger.info("Assistant chat query received: '%s' (session: %s)", raw_query[:60], request.session_id)
+    logger.info("Assistant chat query received (length=%d)", len(raw_query))
 
     # ── Step 1: Pre-LLM Safety Screening (Person 1 Gatekeeper) ────────────────
     safety_result = _gatekeeper.evaluate(raw_query, session_id=request.session_id)
     if not safety_result.is_safe or safety_result.bypass_llm:
-        logger.warning("Bypassing generative AI for high-risk chat query: '%s'", raw_query[:40])
+        logger.warning("Bypassing generative AI for high-risk assistant chat query")
         return ChatResponse(
             reply=safety_result.crisis_message or "Emergency protocol active.",
             citations=[
@@ -104,9 +186,10 @@ async def chat_with_assistant(request: ChatRequest) -> ChatResponse:
             is_crisis=True,
             emergency_contacts=safety_result.emergency_contacts,
             model_used="safety-gatekeeper-bypass",
+            top_similarity=0.0,
         )
 
-    # ── Step 2: RAG Pipeline with ChromaDB & Gemini ───────────────────────────
+    # ── Step 2: RAG Pipeline with ChromaDB & Low-Confidence Guard ─────────────
     rag_result: RAGAnswer = _rag_assistant.generate_response(raw_query, category=request.category)
 
     # Map citations to response schema
@@ -128,60 +211,28 @@ async def chat_with_assistant(request: ChatRequest) -> ChatResponse:
         is_crisis=False,
         emergency_contacts=[],
         model_used=rag_result.model_used,
+        top_similarity=rag_result.top_similarity,
     )
 
 
 @router.get("/cbt-exercises", response_model=CBTExercisesResponse)
 async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercisesResponse:
     """
-    Returns structured CBT and somatic grounding exercises for student anxiety management.
+    Returns structured CBT and somatic grounding exercises for student anxiety management (Person 2 Day 3).
+    Supports filtering by exercise_type: 'grounding' | 'breathing' | 'cbt_reframing' | 'somatic'.
     """
-    all_exercises = [
-        CBTExercise(
-            id="grounding_54321",
-            name="5-4-3-2-1 Sensory Grounding",
-            type="grounding",
-            duration_min=5,
-            steps=[
-                "Look around you and name 5 things you can see.",
-                "Notice 4 physical sensations you can touch (e.g. your feet on the floor, your chair).",
-                "Focus on 3 distinct sounds you can hear in your environment.",
-                "Notice 2 things you can smell (or two scents you enjoy).",
-                "Notice 1 thing you can taste, or take one slow, deliberate breath."
-            ],
-            clinical_rationale="Engages sensory neocortex circuits to rapidly break acute cognitive panic spiraling."
-        ),
-        CBTExercise(
-            id="box_breathing",
-            name="4-4-4-4 Box Breathing",
-            type="breathing",
-            duration_min=4,
-            steps=[
-                "Inhale slowly through your nose for a count of 4.",
-                "Hold your breath gently for a count of 4.",
-                "Exhale smoothly through your mouth for a count of 4.",
-                "Hold empty lungs gently for a count of 4.",
-                "Repeat this square cycle 4 times."
-            ],
-            clinical_rationale="Stimulates the vagus nerve, initiating parasympathetic heart-rate deceleration."
-        ),
-        CBTExercise(
-            id="thought_reframing",
-            name="Academic Imposter Reframing",
-            type="cbt_reframing",
-            duration_min=8,
-            steps=[
-                "Identify the catastrophic thought (e.g. 'If I fail this exam, my entire future is over').",
-                "Identify the cognitive distortion (All-or-Nothing thinking / Catastrophizing).",
-                "Evaluate the factual evidence: What have you achieved in the past?",
-                "Draft a rational alternative thought: 'One exam does not define my capability; I can take concrete study steps today.'"
-            ],
-            clinical_rationale="Cognitive reappraisal reduces cortisol response and restores executive planning function."
+    if not exercise_type or exercise_type.strip().lower() in ("all", "*"):
+        return CBTExercisesResponse(
+            status="success",
+            total=len(CBT_EXERCISES_DATABASE),
+            exercises=CBT_EXERCISES_DATABASE,
         )
-    ]
-    
-    if exercise_type:
-        filtered = [e for e in all_exercises if e.type.lower() == exercise_type.lower()]
-        return CBTExercisesResponse(status="success", exercises=filtered)
-        
-    return CBTExercisesResponse(status="success", exercises=all_exercises)
+
+    clean_type = exercise_type.strip().lower()
+    filtered = [e for e in CBT_EXERCISES_DATABASE if e.type.lower() == clean_type]
+
+    return CBTExercisesResponse(
+        status="success",
+        total=len(filtered),
+        exercises=filtered,
+    )

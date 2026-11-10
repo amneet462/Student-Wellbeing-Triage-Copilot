@@ -28,6 +28,7 @@ from app.api.triage_routes import router as triage_router
 from app.api.assistant_routes import router as assistant_router
 from app.api.agent_routes import router as agent_router
 from app.api.resource_routes import router as resource_router
+from app.services.rate_limiter import RateLimitMiddleware
 from app.config import (
     API_PREFIX,
     APP_DESCRIPTION,
@@ -85,6 +86,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(triage_router, prefix=API_PREFIX)

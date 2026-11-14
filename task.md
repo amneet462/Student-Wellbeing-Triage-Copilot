@@ -65,19 +65,11 @@
 
 ### Person 2 (RAG & AI Assistant)
 - [x] Build interactive CBT exercise endpoints (4-7-8 breathing timer, 5-4-3-2-1 grounding guide)
-<<<<<<< HEAD
-- [x] Add fallback check: if document similarity score is too low (< 0.60), tell student to contact a human advisor
-- [x] Test chatbot against university questions to make sure citations are correct
-
-### Person 3 (Portal & Integration)
-- [x] Build the task scheduler: break big syllabus deadlines into daily 30-minute checklist items (Today / Tomorrow / Next Week)
-=======
 - [x] Add fallback check: if document similarity score is too low, tell student to contact a human advisor
 - [x] Test chatbot against 15 real university questions to make sure citations are correct
 
 ### Person 3 (Portal & Integration)
 - [x] Build the task scheduler: break big syllabus deadlines into daily 30-minute checklist items (Today / This Week / Next Week)
->>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad
 - [x] Add interactive checkboxes so students can tick off completed study tasks
 - [x] Build the *"Draft Extension Email"* button: generates a polite, formal email to the professor citing university policy with 1-click copy
 - [x] Build the Campus Resource Directory page showing cards for Financial Aid, Housing, and Disability Support

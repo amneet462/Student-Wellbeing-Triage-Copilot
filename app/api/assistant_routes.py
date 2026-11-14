@@ -273,8 +273,6 @@ async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercises
             total=len(CBT_EXERCISES_DATABASE),
             exercises=CBT_EXERCISES_DATABASE,
         )
-<<<<<<< HEAD
-
     clean_type = exercise_type.strip().lower()
     filtered = [e for e in CBT_EXERCISES_DATABASE if e.type.lower() == clean_type]
 
@@ -283,14 +281,6 @@ async def get_cbt_exercises(exercise_type: Optional[str] = None) -> CBTExercises
         total=len(filtered),
         exercises=filtered,
     )
-=======
-    ]
-    
-    if exercise_type:
-        filtered = [e for e in all_exercises if e.type.lower() == exercise_type.lower()]
-        return CBTExercisesResponse(status="success", exercises=filtered)
-        
-    return CBTExercisesResponse(status="success", exercises=all_exercises)
 
 
 @router.get("/cbt/478-breathing", response_model=BreathingProtocolResponse)
@@ -408,4 +398,3 @@ async def get_pmr_protocol() -> PMRProtocolResponse:
         clinical_rationale="Contrasting deliberate muscular isometric tension with sudden autonomic release teaches the brain somatic discrimination of chronic stress tension."
     )
 
->>>>>>> 7b1312e521408877fa3e722aab648c5edeaa4dad

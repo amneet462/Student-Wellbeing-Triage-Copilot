@@ -91,9 +91,6 @@ app.add_middleware(
 )
 app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
 
-# ── Rate Limiting Middleware (Person 1) ────────────────────────────────────────
-app.add_middleware(RateLimitMiddleware)
-
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(triage_router, prefix=API_PREFIX)
 app.include_router(assistant_router, prefix=API_PREFIX)

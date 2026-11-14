@@ -139,9 +139,9 @@ def parse_syllabus_content(text: str) -> Dict[str, Any]:
         {
             "day": "Tomorrow (Focus 1)",
             "timeframe": "tomorrow",
-            "task": f"Draft the introductory thesis or solve Q1/Q2 for {first_assignment} (45 min)",
+            "task": f"Draft the introductory thesis or solve Q1/Q2 for {first_assignment} (30 min)",
             "assignment": first_assignment,
-            "estimated_minutes": 45
+            "estimated_minutes": 30
         },
         {
             "day": "Tomorrow (Focus 2)",
